@@ -1,0 +1,118 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "Dataset Search",
+  "description": "USGS EROS JSON API: Dataset Search results",
+  "type": "object",
+  "properties": {
+    "errorCode": {},
+    "error": {
+      "type": "string"
+    },
+    "data": {
+      "type": "array",
+      "items": {
+        "title": "dataset",
+        "type": "object",
+        "properties": {
+          "bounds": {
+            "type": "object",
+            "properties": {
+              "north": {
+                "type": "number"
+              },
+              "east": {
+                "type": "number"
+              },
+              "south": {
+                "type": "number"
+              },
+              "west": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "north",
+              "east",
+              "south",
+              "west"
+            ]
+          },
+          "datasetName": {
+            "type": "string"
+          },
+          "datasetFullName": {
+            "type": "string"
+          },
+          "idnEntryId": {
+            "type": "string"
+          },
+          "endDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "lastModifiedDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "supportDownload": {
+            "type": "boolean"
+          },
+          "supportBulkDownload": {
+            "type": "boolean"
+          },
+          "bulkDownloadOrderLimit": {
+            "type": "number"
+          },
+          "supportCloudCover": {
+            "type": "boolean"
+          },
+          "supportOrder": {
+            "type": "boolean"
+          },
+          "orderLimit": {
+            "type": [
+              "number",
+              "string"
+              ]
+          },
+          "totalScenes": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "bounds",
+          "datasetName",
+          "datasetFullName",
+          "idnEntryId",
+          "endDate",
+          "startDate",
+          "lastModifiedDate",
+          "supportDownload",
+          "supportBulkDownload",
+          "bulkDownloadOrderLimit",
+          "supportCloudCover",
+          "supportOrder",
+          "orderLimit",
+          "totalScenes"
+        ]
+      }
+    },
+    "api_version": {
+      "type": "string"
+    },
+    "executionTime": {
+      "type": "number"
+    }
+  },
+  "required": [
+    "errorCode",
+    "error",
+    "data",
+    "api_version",
+    "executionTime"
+  ]
+}

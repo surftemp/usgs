@@ -1,0 +1,28 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "Logout",
+  "description": "USGS EROS JSON API: Logout results",
+  "type": "object",
+  "properties": {
+    "errorCode": {},
+    "error": {
+      "type": "string"
+    },
+    "data": {
+      "type": "boolean"
+    },
+    "api_version": {
+      "type": "string"
+    },
+    "executionTime": {
+      "type": "number"
+    }
+  },
+  "required": [
+    "errorCode",
+    "error",
+    "data",
+    "api_version",
+    "executionTime"
+  ]
+}

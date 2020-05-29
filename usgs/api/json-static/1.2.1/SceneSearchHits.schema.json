@@ -1,0 +1,28 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "Scene Search Hits",
+  "description": "USGS EROS JSON API: Scene Search Hits results",
+  "type": "object",
+  "properties": {
+    "errorCode": {},
+    "error": {
+      "type": "string"
+    },
+    "data": {
+      "type": "string"
+    },
+    "api_version": {
+      "type": "string"
+    },
+    "executionTime": {
+      "type": "number"
+    }
+  },
+  "required": [
+    "errorCode",
+    "error",
+    "data",
+    "api_version",
+    "executionTime"
+  ]
+}

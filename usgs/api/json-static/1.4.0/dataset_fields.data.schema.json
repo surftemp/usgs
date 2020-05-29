@@ -1,0 +1,44 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "Dataset Fields",
+  "description": "USGS EROS JSON API: Dataset Fields. data member",
+  "type": "array",
+  "items": {
+    "title": "dataset field",
+    "type": "object",
+    "properties": {
+      "fieldId": {
+        "type": "number"
+      },
+      "name": {
+        "type": "string"
+      },
+      "fieldLink": {
+        "type": "string",
+        "format": "uri"
+      },
+      "valueList": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "value": {},
+            "name": {}
+          },
+          "required": [
+            "value",
+            "name"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    "required": [
+      "fieldId",
+      "name",
+      "fieldLink",
+      "valueList"
+    ],
+    "additionalProperties": false
+  }
+}
