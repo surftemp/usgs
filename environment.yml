@@ -1,16 +1,17 @@
-name: usgs
+name: usgs_env
 channels:
 - anaconda-fusion
 - defaults
 - conda-forge
 dependencies:
-- jsonschema=2.5.1=py36_0
-- python-dateutil=2.6.0=py36_0
-- six=1.10.0=py36_0
-- xmltodict=0.10.2=py36_0
-- beautifulsoup4=4.5.3=py36_0
-- pip=9.0.1=py36_1
-- python=3.6.1=0
-- requests=2.13.0=py36_0
-- setuptools=27.2.0
-- wheel=0.29.0=py36_0
+- python=3.6.1
+- jsonschema
+- python-dateutil
+- six
+- xmltodict
+- beautifulsoup4
+- pip
+- python=3.6.1
+- requests
+- setuptools
+- wheel
