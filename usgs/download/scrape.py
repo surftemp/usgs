@@ -132,16 +132,15 @@ def get_full_product_download_url(download_url: str, usgs_username: str, usgs_pa
         # make soup
         soup = BeautifulSoup(r.text, 'html.parser')
 
-        # extract the inputs (find the "Download" buttons")
-        inputs = soup.html.find_all(
-            "input",
+        # extract the divs (enclosing the "Download" buttons")
+        input_divs = soup.html.find_all(
+            "div",
             attrs={
-                "type": "button",
-                "value": "Download"
+                "class": "row clearfix"
             }
         )
 
-        def filter_inputs(tag: element.Tag):
+        def filter_input_divs(tag: element.Tag):
             inner_div = tag.findChild(
                 "div",
                 attrs={
@@ -157,12 +156,13 @@ def get_full_product_download_url(download_url: str, usgs_username: str, usgs_pa
             else:
                 return False
 
-        inputs = list(filter(filter_inputs, inputs))
+        input_divs = list(filter(filter_input_divs, input_divs))
 
-        if len(inputs) != 1:
+        if len(input_divs) != 1:
             raise Exception("Failed to find {} download url @ {}".format(product_label, r.url))
 
-        (input,) = inputs
+        (input_div,) = input_divs
+        input = input_div.findChild("input")
 
         REGEX = r"^window.location='(?P<url>.+)'$"
         MatchObject = re.match(REGEX, input.attrs.get("onclick"))
