@@ -29,9 +29,7 @@ python library.
 
 ### Git clone (or download) this repository
 
-At the command line `git clone https://bitbucket.org/the-iea/usgs.git`, or visit
-https://bitbucket.org/the-iea/usgs/downloads/?tab=branches for a direct download 
-of the master branch.
+At the command line `git clone https://github.com/surftemp/usgs.git`
 
 ### Anaconda (recommended)
 
@@ -47,7 +45,7 @@ deployed and managed with the conda package management system.
         3. In the dialog box enter name `usgs`
         4. For the specification file, select the environment.yml file included in this repository
         5. Click 'import'
-3. Activate conda environment: `source activate usgs` on Unix, or `activate usgs` on Windows.  
+3. Activate conda environment: `conda activate usgs` on Unix, or `activate usgs` on Windows.  
 4. Install this package: `python setup.py install`
 
 Once installed into a conda environment, you need only activate the environment
@@ -72,10 +70,6 @@ python setup.py clean --all
 python setup.py install
 ```
 
-Alternately you may download the most recent source files from the master branch at 
-https://bitbucket.org/the-iea/usgs/downloads/?tab=branches and then proceed
-with `python setup.py install`.
-
 ## Scenes
 
 The API identifies a unique product (scene) via its catalog, dataset, and id.
@@ -95,14 +89,13 @@ HDDSExplorer | HDDS | https://hddsexplorer.usgs.gov/
 
 ### *dataset*
 
-The following datasets are of primary interest
+The following dataset is of primary interest
 
 Name | Catalog | Dataset
 --- | --- | ---
 Landsat 8 OLI/TIRS Collection 1 Level-1 | EE | LANDSAT_8_C1
-NASA ASTER Level 1T | EE | ASTER_L1T
 
-This library was built with the above datasets targetted. 
+This library was built with the above dataset targetted. 
 The default behaviour may be sufficient for other datasets,
 but this is not guaranteed. Other datasets may be supported 
 by request.
@@ -184,8 +177,8 @@ type `usgs COMMAND -h`, e.g. `usgs search-create -h`.
 
 ### Basic workflow
 
-An example workflow to query and download ASTER data is shown below. 
-One begins by defining a query on the ASTER_L1T dataset with the `search-create`
+An example workflow to query and download LANDSAT data is shown below. 
+One begins by defining a query on the LANDSAT_8_C1 dataset with the `search-create`
 command, which saves the query to a json file. 
 Once created, a query may be run by supplying this json file to `search-run`
 to identify scenes of interest.
@@ -195,48 +188,19 @@ Scenes are finally downloaded with the `download` command.
 
 - If cloud cover arguments are specified, we check that these are supported by the dataset.
 - User is asked if they wish to include dataset-specific additional criteria.
+- specify the lat,lon coordinates of the southeast (bottom-left) and northwest (top-right) corners of the bounding box
 
 ```
-> usgs search-create ASTER_L1T my_search.json --bb-centre 51.2071,-3.1316 --bb-length 30 --start-date 2015-01-01 --max-cloud-cover 10
+> usgs search-create LANDSAT_8_C1 my_search.json --bb-southeast=-20.91,150.83 --bb-northwest=-20.68,151.16  --start-date 2015-01-01 --max-cloud-cover 10
 WARNING: this dataset does not support the min and max cloud cover options. These may be available as additional criteria.
-Would you like to set any dataset-specific additional criteria? y
-Please select from the following criteria or type 'q' to exit:
-0 : Local Granule ID
-1 : Entity ID
-2 : Cloud Cover
-3 : Correction Achieved
-4 : Day/Night Indicator
-5 : WRS Path
-6 : WRS Row
-7 : SWIR_MODE
-8 : TIR Mode
-9 : VNIR1 Mode
-? 2
-
-Value list for Cloud Cover:
-None : All
-0 : Less than 10%
-1 : Less than 20%
-2 : Less than 30%
-3 : Less than 40%
-4 : Less than 50%
-5 : Less than 60%
-6 : Less than 70%
-7 : Less than 80%
-8 : Less than 90%
-9 : Less than 100%
-Please enter query in format '=x' (equals x) or 'x<y' (between x and y)
-? =0
-Criterion saved
+Would you like to set any dataset-specific additional criteria? n
 ```
 
 ##### Notes
 
-* For cloud cover criteria the ASTER_L1T dataset requires `=x`, 
-whilst LANDSAT_8_C1 requires `x<y`.
-* For `--bb-centre` in the southern hemisphere you may need to 
-single-quote, e.g. `--bb-centre '-18,140'`, or specify this argument 
-with an equals sign `--bb-centre=-18,140`.
+* For `--bb-southeast` or `--bb-northwest` in the southern hemisphere you may need to 
+single-quote, e.g. `--bb-southeast '-18,140'`, or specify this argument 
+with an equals sign `--bb-southeast=-18,140`.
 
 #### 2. Run the saved search query
 
@@ -244,9 +208,9 @@ Find scenes identified by catalog, dataset, id
 
 ```
 > usgs search-run my_search.json
-EE, ASTER_L1T, 2171633375
-EE, ASTER_L1T, 2189215053
-EE, ASTER_L1T, 2189215271
+EE, LANDSAT_8_C1, LC80920742019107LGN00
+EE, LANDSAT_8_C1, LC80920742019171LGN00
+EE, LANDSAT_8_C1, LC80920742019251LGN00
 ...
 ```
 
@@ -258,22 +222,19 @@ The `download` command requires either the `USGS_DATADIR` environment variable
 or the `--data-dir` command line argument to specify where to save
 downloads (`<data-dir>/catalog/dataset/id/`). 
 
-In the case of the ASTER_L1T dataset,
-an Earthdata account is required (https://urs.earthdata.nasa.gov/users/new).
-The CLI will prompt the user for credentials as below.
-
 ```
-> usgs download --scene EE ASTER_L1T 2171633375
-Please enter Earthdata username:
-Please enter Earthdata password:
-
-Scene(catalog='EE', dataset='ASTER_L1T', id='2171633375')
-INFO:usgs.download.download:Download <url>
-INFO:usgs.download.download:Destination on disk: <temp-file>
-INFO:usgs.download.download:0% (8192/103614193 bytes) @ 0.08 MB/s
-INFO:usgs.download.download:93% (96903168/103614193 bytes) @ 9.59 MB/s
+> usgs download --scene EE LANDSAT_8_C1 LC80920742019283LGN00
+Scene(catalog='EE', dataset='LANDSAT_8_C1', id='LC80920742019283LGN00')
+Login
+https://earthexplorer.usgs.gov/inventory/json/v/1.4.0/login
+https://earthexplorer.usgs.gov/inventory/json/v/1.4.0/metadata
+https://earthexplorer.usgs.gov/inventory/json/v/1.4.0/search
+INFO:usgs.download.download:Download https://dds.cr.usgs.gov/ltaauth/hsm/lsat1/collection01/oli_tirs/T2/2019/092/074/LC08_L1GT_092074_20191010_20191018_01_T2.tar.gz?id=kc1btlfqf0db111ts6fgenah1k&iid=LC80920742019283LGN00&did=564165789&ver=production
+INFO:usgs.download.download:Destination on disk: /var/folders/q2/v1z0vz7s2h31wwc8dyzd06br0000gs/T/LC08_L1GT_092074_20191010_20191018_01_T2.tar.gz
+INFO:usgs.download.download:0% (8192/985516916 bytes) @ 0.00 MB/s
+...
+INFO:usgs.download.download:99% (984932352/985516916 bytes) @ 0.21 MB/s
 INFO:usgs.download.download:done
-Saved to <file>
 ```
 
 ##### Piping search to csv
@@ -291,6 +252,4 @@ file as input to `download`:
 The API is rate restricted to 1 concurrent request.
 Incomplete requests incur a 15 min timeout.
 
-This package has been tested on the primary datasets. 
-Additional datasets are not explicitly supported (for download), 
-but may be implemented if the default behaviour is not sufficient.
+This package has been tested on the LANDSAT_8_C1 dataset. 
