@@ -31,6 +31,8 @@ python library.
 
 At the command line `git clone https://github.com/surftemp/usgs.git`
 
+and change into the directory usgs
+
 ### Anaconda (recommended)
 
 Anaconda is an open source distribution of the Python programming language,
