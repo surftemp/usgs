@@ -27,13 +27,9 @@ def JSON_Request(endpoint: str, api_params: dict = None, data_params: dict = Non
     params = {"jsonRequest": json.dumps(api_params)} if api_params else None
     data_params = {"jsonRequest": json.dumps(data_params)} if data_params else None
     url = urljoin(URL, endpoint)
-    print(url)
-    # r = requests_fn(url, params=params)
     r = requests_fn(url, params=params, data=data_params)
-    # print(r)
     r.raise_for_status()
     j = r.json()
-    # print(json.dumps(j))
     _Check_JSON(j)
     return j
 

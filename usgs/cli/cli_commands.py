@@ -9,7 +9,7 @@ from datetime import timedelta
 from ..datastore.datastore import Datastore
 from ..api import api, util
 from ..api.api_context import API_Context
-from ..download import scrape, download
+from ..download.download_gcp import GCPStorage
 from ..download.dataset_info import AUTH
 from ..api.search_criteria import Search_Criteria
 from ..utils import latlong
@@ -394,18 +394,14 @@ def Download(**kwargs):
 
             meta_xml = util.get_metadata_xml(_scene_json['metadataUrl'])
 
-            full_product_download_url = scrape.get_full_product_download_url(
-                _scene_json_downloadURL,
-                kwargs.get("username"),
-                kwargs.get("password"),
-                scene=scene
-            )
+            product_id = None
+            meta_fields = meta["metadataFields"]
+            for meta_field in meta_fields:
+                if meta_field["fieldName"] == 'Landsat Product Identifier':
+                    product_id = meta_field['value']
 
-            f = download.Download_File(
-                full_product_download_url,
-                tempfile.gettempdir(),
-                auth=auth
-            )
+            s = GCPStorage(scene.catalog, scene.dataset, scene.id, product_id)
+            downloaded_files = s.download()
 
             # combine _scene_json (from scene search) with
             # meta (from scene metadata)
@@ -413,9 +409,8 @@ def Download(**kwargs):
 
             # create a new item in datastore
             # which moves downloaded file out of temp
-            datastore.new(scene, _scene_json, meta_xml, files=[f])
+            datastore.new(scene, _scene_json, meta_xml, files=downloaded_files)
 
             # report final path of download
-            _, tail = os.path.split(f)
-            final_path = os.path.join(datastore.get_path(scene), tail)
+            final_path = datastore.get_path(scene)
             print("Saved to {}".format(final_path))

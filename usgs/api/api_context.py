@@ -126,7 +126,6 @@ class API_Context:
         # optional field:
         # "authType": "EROS"
 
-        print("Login")
         j = api.JSON_Request(
             "login",
             data_params={
@@ -320,9 +319,6 @@ class API_Context:
                         contained = False
                 if contained:
                     filtered_results.append(result)
-                    print("Included")
-                else:
-                    print("Excluded")
 
             j["data"]["results"] = filtered_results
 
@@ -409,7 +405,7 @@ class API_Context:
             API_VERSION,
             "scene_metadata.data.schema.json"
         )
-        jsonschema.validate(j["data"], schema,
-                            format_checker=jsonschema.FormatChecker())
+        # jsonschema.validate(j["data"], schema,
+        #                    format_checker=jsonschema.FormatChecker())
 
         return j["data"]

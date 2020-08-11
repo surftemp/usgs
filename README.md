@@ -159,7 +159,7 @@ Command | Description
 `status` | Retrieve api server status
 `search-create` | Create a saved search query which may be executed with `search-run`
 `search-run` | Execute a search query
-`download` | Download api scenes
+`download` | ~~Download api scenes~~ 
 `scene-metadata` | Returns scene metadata
 `dataset-search` | Search for datasets by name and spatial / temporal range
 `dataset-fields` | Return additional criteria fields for a dataset
@@ -220,21 +220,25 @@ To see more detail on search results supply the `--full-details` flag.
 
 The `download` command requires either the `USGS_DATADIR` environment variable
 or the `--data-dir` command line argument to specify where to save
-downloads (`<data-dir>/catalog/dataset/id/`). 
+downloads (`<data-dir>/catalog/dataset/id/`).
 
 ```
 > usgs download --scene EE LANDSAT_8_C1 LC80920742019283LGN00
-Scene(catalog='EE', dataset='LANDSAT_8_C1', id='LC80920742019283LGN00')
-Login
-https://earthexplorer.usgs.gov/inventory/json/v/1.4.0/login
-https://earthexplorer.usgs.gov/inventory/json/v/1.4.0/metadata
-https://earthexplorer.usgs.gov/inventory/json/v/1.4.0/search
-INFO:usgs.download.download:Download https://dds.cr.usgs.gov/ltaauth/hsm/lsat1/collection01/oli_tirs/T2/2019/092/074/LC08_L1GT_092074_20191010_20191018_01_T2.tar.gz?id=kc1btlfqf0db111ts6fgenah1k&iid=LC80920742019283LGN00&did=564165789&ver=production
-INFO:usgs.download.download:Destination on disk: /var/folders/q2/v1z0vz7s2h31wwc8dyzd06br0000gs/T/LC08_L1GT_092074_20191010_20191018_01_T2.tar.gz
-INFO:usgs.download.download:0% (8192/985516916 bytes) @ 0.00 MB/s
-...
-INFO:usgs.download.download:99% (984932352/985516916 bytes) @ 0.21 MB/s
-INFO:usgs.download.download:done
+Scene(catalog='EE', dataset='LANDSAT_8_C1', id='LC80920742019251LGN00')
+INFO:usgs.download.gcp:Downloading: LC08_L1TP_092074_20190908_20190917_01_T1_B1.TIF
+INFO:usgs.download.gcp:Downloading: LC08_L1TP_092074_20190908_20190917_01_T1_B2.TIF
+INFO:usgs.download.gcp:Downloading: LC08_L1TP_092074_20190908_20190917_01_T1_B3.TIF
+INFO:usgs.download.gcp:Downloading: LC08_L1TP_092074_20190908_20190917_01_T1_B4.TIF
+INFO:usgs.download.gcp:Downloading: LC08_L1TP_092074_20190908_20190917_01_T1_B5.TIF
+INFO:usgs.download.gcp:Downloading: LC08_L1TP_092074_20190908_20190917_01_T1_B6.TIF
+INFO:usgs.download.gcp:Downloading: LC08_L1TP_092074_20190908_20190917_01_T1_B7.TIF
+INFO:usgs.download.gcp:Downloading: LC08_L1TP_092074_20190908_20190917_01_T1_B8.TIF
+INFO:usgs.download.gcp:Downloading: LC08_L1TP_092074_20190908_20190917_01_T1_B9.TIF
+INFO:usgs.download.gcp:Downloading: LC08_L1TP_092074_20190908_20190917_01_T1_B10.TIF
+INFO:usgs.download.gcp:Downloading: LC08_L1TP_092074_20190908_20190917_01_T1_B11.TIF
+INFO:usgs.download.gcp:Downloading: LC08_L1TP_092074_20190908_20190917_01_T1_BQA.TIF
+INFO:usgs.download.gcp:Downloading: LC08_L1TP_092074_20190908_20190917_01_T1_MTL.txt
+Saved to /tmp/EE/LANDSAT_8_C1/LC80920742019251LGN00
 ```
 
 ##### Piping search to csv

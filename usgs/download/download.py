@@ -10,7 +10,7 @@ import requests
 LOGGER = logging.getLogger(__name__)
 
 
-def Download_File(url: str, destination_directory: str, chunk_size: int = 8192, auth: tuple = None) -> str:
+def Download_File(url: str, destination_directory: str, metadata: dict, chunk_size: int = 8192, auth: tuple = None) -> str:
 
     LOGGER.info("Download {}".format(url))
     if auth:
