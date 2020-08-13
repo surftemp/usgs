@@ -71,14 +71,24 @@ def __main__(args=None):
         type=float
     )
     parser_Search_Create.add_argument(
-        "--bb-southeast",
-        help="southeast corner of bounding box. format: \'lat,long\'",
-        type=parse_latlong
+        "--lat-min",
+        help="minimum latitude of bounding box",
+        type=float
     )
     parser_Search_Create.add_argument(
-        "--bb-northwest",
-        help="northwest corner of bounding box. format: \'lat,long\'",
-        type=parse_latlong
+        "--lat-max",
+        help="maximum latitude of bounding box",
+        type=float
+    )
+    parser_Search_Create.add_argument(
+        "--lon-min",
+        help="minimum longitude of bounding box",
+        type=float
+    )
+    parser_Search_Create.add_argument(
+        "--lon-max",
+        help="maximum longitude of bounding box",
+        type=float
     )
 
     parser_Search_Create.add_argument(

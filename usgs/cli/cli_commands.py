@@ -144,8 +144,8 @@ def Create_Saved_Search_To_File(**kwargs):
             sys.exit(1)
         lower_left, upper_right = latlong.PointToBB_km(centre, l, l)
     else:
-        lower_left = kwargs.get("bb_southeast")
-        upper_right = kwargs.get("bb_northwest")
+        lower_left = latlong.LatLong(kwargs.get("lat_min"),kwargs.get("lon_max"))
+        upper_right = latlong.LatLong(kwargs.get("lat_max"),kwargs.get("lon_min"))
 
 
     # test cloud cover supported
