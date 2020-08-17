@@ -314,6 +314,26 @@ class API_Context:
             for result in results:
                 image_polygon = Polygon([[coords[0],coords[1]] for coords in result["spatialFootprint"]["coordinates"][0]])
                 contained = True
+
+                # from visigoth import Diagram
+                # from visigoth.containers import Map, Box
+                # from visigoth.map_layers import Geoplot, WMS
+                # from visigoth.map_layers.geoplot import Multipolygon
+                # from visigoth.utils.mapping.projections import Projections
+
+                # d = Diagram()
+                # m = Map(width=1024,boundaries=((-4,50),(1,53)),projection=Projections.EPSG_4326)
+                # mp1 = Multipolygon([[[[coords[0],coords[1]] for coords in result["spatialFootprint"]["coordinates"][0]]]],fill="#8080FF40")
+                # mp2 = Multipolygon(
+                #     [[[[lon_min, lat_max],[lon_min,lat_min],[lon_max,lat_min],[lon_max,lat_max]]]],
+                #     fill="#FF808040")
+                # w = WMS(type="osm")
+                # g = Geoplot(multipolys=[mp1,mp2])
+                # m.add(w)
+                # m.add(g)
+                # d.add(Box(m))
+                # html = d.draw()
+                # open("test.html","w").write(html)
                 for point in box_points:
                     if not image_polygon.contains(point):
                         contained = False
@@ -321,8 +341,6 @@ class API_Context:
                     filtered_results.append(result)
 
             j["data"]["results"] = filtered_results
-
-
 
         return j["data"]
 

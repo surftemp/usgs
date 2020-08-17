@@ -92,6 +92,12 @@ def __main__(args=None):
     )
 
     parser_Search_Create.add_argument(
+        "--noninteractive",
+        help="run without promting user",
+        action='store_true'
+    )
+
+    parser_Search_Create.add_argument(
         "--start-date",
         help="earliest date, e.g. \'2012-05-29\'",
         type=parse_datetime

@@ -167,90 +167,91 @@ def Create_Saved_Search_To_File(**kwargs):
                 print("WARNING: this dataset does not support the min and max cloud cover options. These may be available as additional criteria.")
 
     additional_criteria = None
-    yn = input("Would you like to set any dataset-specific additional criteria? ")
-    if yn in ("Y", "y", "YES", "yes", "Yes"):
+    if not kwargs["noninteractive"]:
+        yn = input("Would you like to set any dataset-specific additional criteria? ")
+        if yn in ("Y", "y", "YES", "yes", "Yes"):
 
-        with API_Context(
-                kwargs.get("username"),
-                kwargs.get("password"),
-                catalog
-        ) as context:
-            fields = context.DatasetFields(dataset)
+            with API_Context(
+                    kwargs.get("username"),
+                    kwargs.get("password"),
+                    catalog
+            ) as context:
+                fields = context.DatasetFields(dataset)
 
-        # list of user-specified criteria to combine
-        criteria = []
+            # list of user-specified criteria to combine
+            criteria = []
 
-        while True:
+            while True:
 
-            if not fields:
-                print("No additional criteria")
-                break
+                if not fields:
+                    print("No additional criteria")
+                    break
 
-            print("Please select from the following criteria or type \'q\' to exit:")
-            for i, field in enumerate(fields):
-                print(i, ":", field["name"])
-            i = input("? ")
-            print()
+                print("Please select from the following criteria or type \'q\' to exit:")
+                for i, field in enumerate(fields):
+                    print(i, ":", field["name"])
+                i = input("? ")
+                print()
 
-            try:
-                field = fields[int(i)]
-            except:
-                break
-
-            if field["valueList"]:
-                option_dict = {x["value"]: x["name"] for x in field["valueList"]}
-                print("Value list for {}:".format(field["name"]))
-                for k, v in option_dict.items():
-                    print("{} : {}".format(k, v))
-
-            print("Please enter query in format \'=x\' (equals x) or \'x<y\' (between x and y)")
-            i: str = input("? ")
-
-            if i.startswith("="):
-                # value
-                selected_value = i[1:]
-                if selected_value in ("None", ""):
-                    selected_value = None
-                criteria.append(
-                    api.AdditionalCriteria_Value(
-                        int(field["fieldId"]),
-                        "=",
-                        selected_value
-                    )
-                )
-            else:
-                # between
                 try:
-                    (x, y) = i.split("<")
+                    field = fields[int(i)]
                 except:
-                    print("unrecognised input")
-                    print()
-                    continue
-                if x in ("None", ""):
-                    x = None
-                if y in ("None", ""):
-                    y = None
-                criteria.append(
-                    api.AdditionalCriteria_Between(
-                        int(field["fieldId"]),
-                        x,
-                        y
+                    break
+
+                if field["valueList"]:
+                    option_dict = {x["value"]: x["name"] for x in field["valueList"]}
+                    print("Value list for {}:".format(field["name"]))
+                    for k, v in option_dict.items():
+                        print("{} : {}".format(k, v))
+
+                print("Please enter query in format \'=x\' (equals x) or \'x<y\' (between x and y)")
+                i: str = input("? ")
+
+                if i.startswith("="):
+                    # value
+                    selected_value = i[1:]
+                    if selected_value in ("None", ""):
+                        selected_value = None
+                    criteria.append(
+                        api.AdditionalCriteria_Value(
+                            int(field["fieldId"]),
+                            "=",
+                            selected_value
+                        )
                     )
-                )
+                else:
+                    # between
+                    try:
+                        (x, y) = i.split("<")
+                    except:
+                        print("unrecognised input")
+                        print()
+                        continue
+                    if x in ("None", ""):
+                        x = None
+                    if y in ("None", ""):
+                        y = None
+                    criteria.append(
+                        api.AdditionalCriteria_Between(
+                            int(field["fieldId"]),
+                            x,
+                            y
+                        )
+                    )
 
-            print("Criterion saved")
-            print()
+                print("Criterion saved")
+                print()
 
-            # remove this field from options and continue
-            fields.remove(field)
+                # remove this field from options and continue
+                fields.remove(field)
 
-        if criteria:
-            if len(criteria) == 1:
-                # unpack singe criterion
-                (additional_criteria,) = criteria
-            else:
-                # AND many criteria
-                additional_criteria = api.AdditionalCriteria_And(criteria)
+            if criteria:
+                if len(criteria) == 1:
+                    # unpack singe criterion
+                    (additional_criteria,) = criteria
+                else:
+                    # AND many criteria
+                    additional_criteria = api.AdditionalCriteria_And(criteria)
 
     criteria = Search_Criteria(
         catalog,
