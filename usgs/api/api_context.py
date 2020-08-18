@@ -242,7 +242,8 @@ class API_Context:
             max_results: int = 10,
             starting_number: int = 1,
             sort_order: str = "ASC",
-            check_encloses: bool = False
+            check_encloses: bool = False,
+            check_using: str = "metadata"
     ) -> dict:
         """
         Data product search.
@@ -260,7 +261,8 @@ class API_Context:
         :param max_results: max 50,000
         :param starting_number: pagination
         :param sort_order: ASC or DESC
-        :param check_encloses: check that scenes include the entire bounding box
+        :param check_encloses: True iff extra checks should be performed that the image encloses the bounding box
+        :param check_using: metadata or wrs2 - how to check that scenes include all/most of the bounding box
         """
         if not 0 <= max_results <= 50000:
             raise ValueError("0 <= max_results <= 50000")
@@ -302,6 +304,7 @@ class API_Context:
         # jsonschema.validate(j["data"], schema, format_checker=jsonschema.FormatChecker())
 
         if check_encloses:
+
             from shapely.geometry import Point, Polygon
             results = j["data"]["results"]
             filtered_results = []
@@ -311,33 +314,30 @@ class API_Context:
             lat_max = upper_right.latitude
             lon_max = upper_right.longitude
             box_points = [Point(lon, lat) for lat in [lat_min, lat_max] for lon in [lon_min, lon_max]]
+
+            footprints = {} # mapping from (path,row) to WRS2 footprint [{"latitude":...,"longitude":...},...,...]
             for result in results:
-                image_polygon = Polygon([[coords[0],coords[1]] for coords in result["spatialFootprint"]["coordinates"][0]])
-                contained = True
+                entityId = result["entityId"]
 
-                # from visigoth import Diagram
-                # from visigoth.containers import Map, Box
-                # from visigoth.map_layers import Geoplot, WMS
-                # from visigoth.map_layers.geoplot import Multipolygon
-                # from visigoth.utils.mapping.projections import Projections
+                if check_using == "wrs2":
+                    points_target = 3 # look for at least 3/4 corners in the wrs2 footprint
+                    path = int(entityId[3:6])
+                    row = int(entityId[6:9])
+                    if (path,row) not in footprints:
+                        footprint = API_Context.GridToLatLong("WRS2","polygon",path,row)["coordinates"]
+                        footprints[(path,row)] = footprint
+                    else:
+                        footprint = footprints[(path,row)]
+                    image_polygon = Polygon([[p["longitude"],p["latitude"]] for p in footprint])
 
-                # d = Diagram()
-                # m = Map(width=1024,boundaries=((-4,50),(1,53)),projection=Projections.EPSG_4326)
-                # mp1 = Multipolygon([[[[coords[0],coords[1]] for coords in result["spatialFootprint"]["coordinates"][0]]]],fill="#8080FF40")
-                # mp2 = Multipolygon(
-                #     [[[[lon_min, lat_max],[lon_min,lat_min],[lon_max,lat_min],[lon_max,lat_max]]]],
-                #     fill="#FF808040")
-                # w = WMS(type="osm")
-                # g = Geoplot(multipolys=[mp1,mp2])
-                # m.add(w)
-                # m.add(g)
-                # d.add(Box(m))
-                # html = d.draw()
-                # open("test.html","w").write(html)
+                else:
+                    points_target = 4 # look for all 4 corners in the metadata footprint
+                    image_polygon = Polygon([[coords[0],coords[1]] for coords in result["spatialFootprint"]["coordinates"][0]])
+                points = 0
                 for point in box_points:
-                    if not image_polygon.contains(point):
-                        contained = False
-                if contained:
+                    if image_polygon.contains(point):
+                        points += 1
+                if points >= points_target:
                     filtered_results.append(result)
 
             j["data"]["results"] = filtered_results

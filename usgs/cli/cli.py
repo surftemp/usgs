@@ -169,8 +169,14 @@ def __main__(args=None):
     )
     parser_Search_Run.add_argument(
         "--check-encloses",
-        help="if specified, discard scenes that do not completely enclose the requested bounding box",
+        help='add some extra checking to filter out scenes which do not significantly overlap or enclose the requested bounding box.',
         action='store_true'
+    )
+    parser_Search_Run.add_argument(
+        "--check-using",
+        help='if "metadata" check at least 4 corners lie inside metadata area.  If "wrs2" check at least 3 corners lie inside the WRS2 footprint of the scene path/row.',
+        type=str,
+        default="wrs2"
     )
     parser_Search_Run.set_defaults(func=cli_commands.Run_Saved_Search)
 

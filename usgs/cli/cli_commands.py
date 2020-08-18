@@ -286,7 +286,7 @@ def Run_Saved_Search(**kwargs):
     ) as context:
         # when we unpack Search_Criteria into SceneSearch() we need to
         # throw away 'catalog', which is the first member of the tuple
-        J = context.SceneSearch(*criteria[1:],check_encloses=kwargs.get("check_encloses"))
+        J = context.SceneSearch(*criteria[1:],check_encloses=kwargs.get("check_encloses"),check_using=kwargs.get("check_using"))
         for scene in J["results"]:
             if kwargs.get("full_details"):
                 print(json.dumps(scene, indent=2))
