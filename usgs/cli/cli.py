@@ -168,7 +168,7 @@ def __main__(args=None):
         action='store_true'
     )
     parser_Search_Run.add_argument(
-        "--check_encloses",
+        "--check-encloses",
         help="if specified, discard scenes that do not completely enclose the requested bounding box",
         action='store_true'
     )
