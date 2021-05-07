@@ -128,24 +128,16 @@ class Datastore:
         if os.path.isdir(path):
             shutil.rmtree(path)
 
-    def new(self, scene: Scene, scene_json: dict = None, metadata_xml: str = None, files: List[str] = None):
+    def new(self, scene: Scene, files: List[str] = None):
         """
         Create and populate new Scene(catalog, dataset, id) in datastore
 
-        :param scene_json: metadata -> .scene.json
-        :param metadata_xml: metadata -> .metadata.xml
         :param files: files to move into datastore
         """
         if self.exists(scene):
             raise ValueError("Scene already exists in datastore: {}".format(scene))
         path = self.get_path(scene)
         os.makedirs(path)
-        if scene_json:
-            with open(os.path.join(path, ".scene.json"), "w") as f:
-                json.dump(scene_json, f, indent=2)
-        if metadata_xml:
-            with open(os.path.join(path, ".metadata.xml"), "w") as f:
-                f.write(metadata_xml)
         if files:
             for file in files:
                 shutil.move(file, path)

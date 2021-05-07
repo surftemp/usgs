@@ -357,7 +357,7 @@ def Download(**kwargs):
                 scene.catalog
         ) as context:
 
-            (meta,) = context.SceneMetadata(scene.dataset, [scene.id])
+            meta = context.SceneMetadata(scene.dataset, scene.id)
 
             # 1.4.0: downloadUrl no longer in Scene Metadata!!
             # in the future downloadUrl will probably be depreciated in
@@ -365,38 +365,9 @@ def Download(**kwargs):
 
             # horrible workaround is to repeat scene search :-(
 
-            acq_date = parse_datetime(meta['acquisitionDate'])
-
-            _scenes = context.SceneSearch(
-                scene.dataset,
-                scene.id,
-                start_date=acq_date - timedelta(days=1),
-                end_date=acq_date + timedelta(days=1),
-                max_results=50000  # max
-            )['results']
-
-            _scenes = list(filter(
-                lambda x: x.get('entityId') == scene.id,
-                _scenes
-            ))
-
-            if len(_scenes) != 1:
-                print("ERROR: Could not find scene on server")
-                continue
-
-            # unpack
-            (_scene_json,) = _scenes
-
-            _scene_json_downloadURL = _scene_json['downloadUrl']
-
-            if not _scene_json_downloadURL:
-                print("ERROR: No download url supplied by API")
-                continue
-
-            meta_xml = util.get_metadata_xml(_scene_json['metadataUrl'])
 
             product_id = None
-            meta_fields = meta["metadataFields"]
+            meta_fields = meta["metadata"]
             for meta_field in meta_fields:
                 if meta_field["fieldName"] == 'Landsat Product Identifier':
                     product_id = meta_field['value']
@@ -404,13 +375,9 @@ def Download(**kwargs):
             s = GCPStorage(scene.catalog, scene.dataset, scene.id, product_id)
             downloaded_files = s.download()
 
-            # combine _scene_json (from scene search) with
-            # meta (from scene metadata)
-            _scene_json.update(meta)
-
             # create a new item in datastore
             # which moves downloaded file out of temp
-            datastore.new(scene, _scene_json, meta_xml, files=downloaded_files)
+            datastore.new(scene, files=downloaded_files)
 
             # report final path of download
             final_path = datastore.get_path(scene)

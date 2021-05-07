@@ -401,17 +401,17 @@ class API_Context:
         return j["data"]
 
     @_login
-    def SceneMetadata(self, dataset_name: str, entity_ids: List[str]) -> List[dict]:
+    def SceneMetadata(self, dataset_name: str, entity_id: str) -> List[dict]:
         """
         returns the same metadata that is available via the search request.
         """
         j = api.JSON_Request(
-            "metadata",
-            {
+            "scene-metadata",
+            data_params={
                 "datasetName": dataset_name,
-                "entityIds": entity_ids,
-                "apiKey": self.api_key,
-            }
+                "entityId": entity_id
+            },
+            headers={"X-Auth-Token":self.api_key}
         )
 
         # validate against schema
