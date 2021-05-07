@@ -19,15 +19,16 @@ from .util import staticjson
 from ..utils.latlong import LatLong
 
 
-def JSON_Request(endpoint: str, api_params: dict = None, data_params: dict = None, requests_fn: Callable = requests.get) -> dict:
+def JSON_Request(endpoint: str, api_params: dict = None, data_params: dict = None, requests_fn: Callable = requests.get, headers={}) -> dict:
     """
     executes request against earth explorer json api
     """
     # url = .../json/endpoint?jsonRequest=<json>
-    params = {"jsonRequest": json.dumps(api_params)} if api_params else None
-    data_params = {"jsonRequest": json.dumps(data_params)} if data_params else None
+    params = json.dumps(api_params) if api_params else None
+    data_params = json.dumps(data_params) if data_params else None
     url = urljoin(URL, endpoint)
-    r = requests_fn(url, params=params, data=data_params)
+    r = requests_fn(url, params=params, data=data_params, headers=headers)
+    print(r.text)
     r.raise_for_status()
     j = r.json()
     _Check_JSON(j)
@@ -68,12 +69,12 @@ def _Check_JSON(json: dict):
         # jsonschema.validate(json, schema)
 
         # Auth
-        if json["errorCode"] == 'AUTH_INVALID' or json["error"] == 'Authentication Failed':
+        if json["errorCode"] == 'AUTH_INVALID' or json["errorMessage"] == 'Authentication Failed':
             raise NotAuthorisedException(json=json)
         # error reported in JSON
-        elif json["errorCode"] or json["error"]:
+        elif json["errorCode"] or json["errorMessage"]:
             raise API_Exception(
-                "{}: {}".format(json["errorCode"], json["error"]),
+                "{}: {}".format(json["errorCode"], json["errorMessage"]),
                 json
             )
 
@@ -130,9 +131,8 @@ class TemporalFilter(API_Nested_Object_Base):
     ):
         super().__init__()
         self.update({
-            "dateField": "search_date",
-            "startDate": start.isoformat() if start else None,
-            "endDate": end.isoformat() if end else None
+            "start": start.isoformat() if start else None,
+            "end": end.isoformat() if end else None
         })
 
 

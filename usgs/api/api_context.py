@@ -130,8 +130,7 @@ class API_Context:
             "login",
             data_params={
                 "username": username,
-                "password": password,
-                "catalogId": catalog_id
+                "password": password
             },
             requests_fn=requests.post
         )
@@ -270,29 +269,32 @@ class API_Context:
             raise ValueError("sort_order must be ASC or DESC")
         params = {
             "datasetName": dataset_name,
-            "apiKey": self.api_key,
-            "includeUnknownCloudCover": include_unknown_cloud_cover,
-            "minCloudCover": min_cloud_cover,
-            "maxCloudCover": max_cloud_cover,
+            "scene_filter": {
+                "cloudCoverFilter": {
+                    "includeUnknown": include_unknown_cloud_cover,
+                    "min": min_cloud_cover,
+                    "max": max_cloud_cover
+                }
+            },
             "maxResults": max_results,
             "startingNumber": starting_number,
-            "sortOrder": sort_order
+            "sortDirection": sort_order
         }
         if lower_left and upper_right:
-            params["spatialFilter"] = api.SpatialFilterMBR(
+            params["scene_filter"]["spatialFilter"] = api.SpatialFilterMBR(
                 lower_left,
                 upper_right
             ).json()
         if start_date or end_date:
-            params["temporalFilter"] = api.TemporalFilter(
+            params["scene_filter"]["ingestFilter"] = api.TemporalFilter(
                 start_date,
                 end_date
             )
         if months:
-            params["months"] = months
+            params["scene_filter"]["seasonalFilter"] = months
         if additional_criteria:
             params["additionalCriteria"] = additional_criteria
-        j = api.JSON_Request("search", params)
+        j = api.JSON_Request("scene-search", data_params=params, headers={"X-Auth-Token":self.api_key, 'User-Agent': 'USGS Client Tool 1.0'})
 
         # validate against schema
         # NOTE ODDITY: j["data"]["results"].["startTime"] is date not time!
