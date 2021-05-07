@@ -77,7 +77,7 @@ class API_Context:
         return j
 
     @staticmethod
-    def GridToLatLong(grid_type: str, response_shape: str, path: int, row: int) -> dict:
+    def GridToLatLong(grid_type: str, response_shape: str, path: int, row: int, api_key=None) -> dict:
         """
         convert WRS-1 and WRS-2 grid systems to lat/lng center point or polygon
 
@@ -94,11 +94,14 @@ class API_Context:
 
         j = api.JSON_Request(
             "grid2ll",
-            {
+            data_params={
                 "gridType": grid_type,
                 "responseShape": response_shape,
                 "path": path,
                 "row": row
+            },
+            headers = {
+                "X-Auth-Token":api_key
             }
         )
 
@@ -151,17 +154,8 @@ class API_Context:
         """
         j = api.JSON_Request(
             "logout",
-            {"apiKey": api_key}
+            headers={"X-Auth-Token": api_key}
         )
-
-        # json-schema for data field
-        schema = staticjson(
-            API_VERSION,
-            "logout.data.schema.json"
-        )
-        jsonschema.validate(j["data"], schema)
-
-        return j["data"]
 
     @_login
     def DatasetSearch(
@@ -269,7 +263,7 @@ class API_Context:
             raise ValueError("sort_order must be ASC or DESC")
         params = {
             "datasetName": dataset_name,
-            "scene_filter": {
+            "sceneFilter": {
                 "cloudCoverFilter": {
                     "includeUnknown": include_unknown_cloud_cover,
                     "min": min_cloud_cover,
@@ -281,17 +275,17 @@ class API_Context:
             "sortDirection": sort_order
         }
         if lower_left and upper_right:
-            params["scene_filter"]["spatialFilter"] = api.SpatialFilterMBR(
+            params["sceneFilter"]["spatialFilter"] = api.SpatialFilterMBR(
                 lower_left,
                 upper_right
             ).json()
         if start_date or end_date:
-            params["scene_filter"]["ingestFilter"] = api.TemporalFilter(
+            params["sceneFilter"]["ingestFilter"] = api.TemporalFilter(
                 start_date,
                 end_date
             )
         if months:
-            params["scene_filter"]["seasonalFilter"] = months
+            params["sceneFilter"]["seasonalFilter"] = months
         if additional_criteria:
             params["additionalCriteria"] = additional_criteria
         j = api.JSON_Request("scene-search", data_params=params, headers={"X-Auth-Token":self.api_key, 'User-Agent': 'USGS Client Tool 1.0'})
@@ -326,7 +320,7 @@ class API_Context:
                     path = int(entityId[3:6])
                     row = int(entityId[6:9])
                     if (path,row) not in footprints:
-                        footprint = API_Context.GridToLatLong("WRS2","polygon",path,row)["coordinates"]
+                        footprint = API_Context.GridToLatLong("WRS2","polygon",path,row,self.api_key)["coordinates"]
                         footprints[(path,row)] = footprint
                     else:
                         footprint = footprints[(path,row)]

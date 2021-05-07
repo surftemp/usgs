@@ -9,10 +9,10 @@
     "latitude": -20.68,
     "longitude": 150.83
   },
-  "start_date": "2015-01-01T00:00:00",
-  "end_date": "2019-01-01T00:00:00",
+  "start_date": "2010-01-01T00:00:00",
+  "end_date": "2021-05-01T00:00:00",
   "months": null,
-  "include_unknown_cloud_cover": true,
+  "include_unknown_cloud_cover": false,
   "min_cloud_cover": 0,
   "max_cloud_cover": 25,
   "additional_criteria": null,

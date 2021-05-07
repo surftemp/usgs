@@ -78,10 +78,6 @@ def _Check_JSON(json: dict):
                 json
             )
 
-        # no data
-        if not json["data"]:
-            raise API_Exception("No data", json)
-
     except jsonschema.ValidationError as e:
         raise API_Exception(
             "API returned improper response",
