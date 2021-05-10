@@ -343,9 +343,6 @@ def Download(**kwargs):
 
     for scene in jobs:
 
-        print()
-        print(scene)
-
         # does it already exist on disk?
         if on_disk.get(scene):
             print("Already on disk")
@@ -357,24 +354,27 @@ def Download(**kwargs):
                 scene.catalog
         ) as context:
 
-            meta = context.SceneMetadata(scene.dataset, scene.id)
+            try:
+                meta = context.SceneMetadata(scene.dataset, scene.id)
 
-            # 1.4.0: downloadUrl no longer in Scene Metadata!!
-            # in the future downloadUrl will probably be depreciated in
-            # favour of the M2M api download endpoint
+                # 1.4.0: downloadUrl no longer in Scene Metadata!!
+                # in the future downloadUrl will probably be depreciated in
+                # favour of the M2M api download endpoint
 
-            # horrible workaround is to repeat scene search :-(
+                # horrible workaround is to repeat scene search :-(
 
 
-            product_id = None
-            meta_fields = meta["metadata"]
-            for meta_field in meta_fields:
-                if meta_field["fieldName"] == 'Landsat Product Identifier':
-                    product_id = meta_field['value']
+                product_id = None
+                meta_fields = meta["metadata"]
+                for meta_field in meta_fields:
+                    if meta_field["fieldName"] == 'Landsat Product Identifier':
+                        product_id = meta_field['value']
 
-            s = GCPStorage(scene.catalog, scene.dataset, scene.id, product_id)
-            downloaded_files = s.download()
-
+                s = GCPStorage(scene.catalog, scene.dataset, scene.id, product_id)
+                downloaded_files = s.download()
+            except Exception as ex:
+                print("ERROR - failed to download: %s (%s)"%(scene.id,str(ex)))
+                continue
             # create a new item in datastore
             # which moves downloaded file out of temp
             datastore.new(scene, files=downloaded_files)

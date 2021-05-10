@@ -28,7 +28,6 @@ def JSON_Request(endpoint: str, api_params: dict = None, data_params: dict = Non
     data_params = json.dumps(data_params) if data_params else None
     url = urljoin(URL, endpoint)
     r = requests_fn(url, params=params, data=data_params, headers=headers)
-    print(r.text)
     r.raise_for_status()
     j = r.json()
     _Check_JSON(j)
