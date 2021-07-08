@@ -68,7 +68,7 @@ This library may alternately be installed via Pip into an existing python 3.6 en
 To install a newer version of this library, if you git-cloned the repository 
 initially (as above), you can use git to perform the update:
 
-### Updating landsat2nc
+### Updating usgs
 
 Use the following commands to update the usgs tool when the source code in github has changed:
 
