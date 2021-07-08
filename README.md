@@ -47,7 +47,7 @@ deployed and managed with the conda package management system.
         3. In the dialog box enter name `usgs`
         4. For the specification file, select the environment.yml file included in this repository
         5. Click 'import'
-3. Activate conda environment: `conda activate usgs` on Unix, or `activate usgs` on Windows.  
+3. Activate conda environment: `conda activate usgs_env` on Unix, or `activate usgs_env` on Windows.  
 4. Install this package: `python setup.py install`
 
 Once installed into a conda environment, you need only activate the environment
@@ -58,17 +58,24 @@ in a new shell (step #3 above) to access this library.
 This library may alternately be installed via Pip into an existing python 3.6 environment.
 
 1. Ensure local python >= 3.6
-2. Install requirements `pip install -r requirements.txt`
-3. Install this package: `python setup.py install`
+2. Create environment: `python3 -m venv ~/usgs_env`
+3. Activate environment: `. ~/usgs_env/bin/activate`   
+4. Install requirements `pip install -r requirements.txt`
+5. Install this package: `python setup.py install`
 
 ### Updates
 
 To install a newer version of this library, if you git-cloned the repository 
 initially (as above), you can use git to perform the update:
- 
+
+### Updating landsat2nc
+
+Use the following commands to update the usgs tool when the source code in github has changed:
+
 ```
+conda activate usgs_env OR . ~/usgs_env/bin/activate
 git pull
-python setup.py clean --all
+pip uninstall usgs
 python setup.py install
 ```
 
@@ -158,14 +165,16 @@ Commands are invoked at the CLI with `usgs COMMAND ...`.
 
 Command | Description
 --- | ---
-`status` | Retrieve api server status
+~~status~~* | ~~Retrieve api server status~~
 `search-create` | Create a saved search query which may be executed with `search-run`
 `search-run` | Execute a search query
-`download` | ~~Download api scenes~~ 
-`scene-metadata` | Returns scene metadata
-`dataset-search` | Search for datasets by name and spatial / temporal range
-`dataset-fields` | Return additional criteria fields for a dataset
-`grid2ll` | Convert grid locations to a lat/lng center point or polygon
+`download` | Download api scenes
+~~scene-metadata~~* | ~~Returns scene metadata~~
+~~dataset-search~~* | ~~Search for datasets by name and spatial / temporal range~~
+~~dataset-fields~~* | ~~Return additional criteria fields for a dataset~~
+~~grid2ll~~* | ~~Convert grid locations to a lat/lng center point or polygon~~
+
+*commands not currently converted to use new USGS APIs
 
 Please note that universal arguments (if environment variables are not set)
 should be supplied *before* the command.

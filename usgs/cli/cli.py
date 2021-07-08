@@ -41,11 +41,11 @@ def __main__(args=None):
     command_subparsers = parser.add_subparsers()
 
     # Status
-    parser_Status: ArgumentParser = command_subparsers.add_parser(
-        "status",
-        description="Retrieve api server status"
-    )
-    parser_Status.set_defaults(func=cli_commands.Status)
+    # parser_Status: ArgumentParser = command_subparsers.add_parser(
+    #    "status",
+    #    description="Retrieve api server status"
+    # )
+    # parser_Status.set_defaults(func=cli_commands.Status)
 
     # Search Create
     parser_Search_Create: ArgumentParser = command_subparsers.add_parser(
@@ -199,78 +199,78 @@ def __main__(args=None):
     parser_Download.set_defaults(func=cli_commands.Download)
 
     # SceneMetadata
-    parser_SceneMetadata: ArgumentParser = command_subparsers.add_parser(
-        "scene-metadata",
-        description="Returns scene metadata"
-    )
-    parser_SceneMetadata.add_argument(
-        "--catalog",
-        help="choice of catalog. (previously 'node')",
-        choices=[cat.value for cat in Catalogs],
-        default=Catalogs.EarthExplorer.value
-    )
-    parser_SceneMetadata.add_argument("dataset")
-    parser_SceneMetadata.add_argument("id")
-    parser_SceneMetadata.set_defaults(func=cli_commands.SceneMetadata)
+    # parser_SceneMetadata: ArgumentParser = command_subparsers.add_parser(
+    #     "scene-metadata",
+    #     description="Returns scene metadata"
+    # )
+    # parser_SceneMetadata.add_argument(
+    #     "--catalog",
+    #     help="choice of catalog. (previously 'node')",
+    #     choices=[cat.value for cat in Catalogs],
+    #     default=Catalogs.EarthExplorer.value
+    # )
+    # parser_SceneMetadata.add_argument("dataset")
+    # parser_SceneMetadata.add_argument("id")
+    # parser_SceneMetadata.set_defaults(func=cli_commands.SceneMetadata)
 
     # DatasetSearch
-    parser_DatasetSearch: ArgumentParser = command_subparsers.add_parser(
-        "dataset-search",
-        description="Search for datasets by name and spatial / temporal range"
-    )
-    parser_DatasetSearch.add_argument(
-        "--catalog",
-        help="choice of catalog. (previously 'node')",
-        choices=[cat.value for cat in Catalogs],
-        default=Catalogs.EarthExplorer.value
-    )
-    parser_DatasetSearch.add_argument("dataset-name-pattern")
-    parser_DatasetSearch.add_argument(
-        "--bb-centre",
-        help="centre of bounding box. format: \'lat,long\'",
-        type=parse_latlong
-    )
-    parser_DatasetSearch.add_argument(
-        "--bb-length",
-        help="size of bounding box in km",
-        type=float
-    )
-    parser_DatasetSearch.add_argument(
-        "--start-date",
-        help="earliest date, e.g. \'2012-05-29\'",
-        type=parse_datetime
-    )
-    parser_DatasetSearch.add_argument(
-        "--end-date",
-        help="latest date, e.g. \'2017-12-31\'",
-        type=parse_datetime
-    )
-    parser_DatasetSearch.set_defaults(func=cli_commands.DatasetSearch)
-
-    # DatasetFields
-    parser_DatasetFields: ArgumentParser = command_subparsers.add_parser(
-        "dataset-fields",
-        description="Return additional criteria fields for a dataset. These fields may be used in advanced queries via the additionalCriteria json parameter."
-    )
-    parser_DatasetFields.add_argument(
-        "--catalog",
-        help="choice of catalog. (previously 'node')",
-        choices=[cat.value for cat in Catalogs],
-        default=Catalogs.EarthExplorer.value
-    )
-    parser_DatasetFields.add_argument("dataset")
-    parser_DatasetFields.set_defaults(func=cli_commands.DatasetFields)
-
-    # GridToLatLong
-    parser_GridToLatLong: ArgumentParser = command_subparsers.add_parser(
-        "grid2ll",
-        description="Convert grid locations to a lat/lng center point or polygon"
-    )
-    parser_GridToLatLong.add_argument("grid-type", choices=('WRS1', 'WRS2'))
-    parser_GridToLatLong.add_argument("response-shape", choices=('point', 'polygon'))
-    parser_GridToLatLong.add_argument("path", type=int)
-    parser_GridToLatLong.add_argument("row", type=int)
-    parser_GridToLatLong.set_defaults(func=cli_commands.GridToLatLong)
+    # parser_DatasetSearch: ArgumentParser = command_subparsers.add_parser(
+    #     "dataset-search",
+    #     description="Search for datasets by name and spatial / temporal range"
+    # )
+    # parser_DatasetSearch.add_argument(
+    #     "--catalog",
+    #     help="choice of catalog. (previously 'node')",
+    #     choices=[cat.value for cat in Catalogs],
+    #     default=Catalogs.EarthExplorer.value
+    # )
+    # parser_DatasetSearch.add_argument("dataset-name-pattern")
+    # parser_DatasetSearch.add_argument(
+    #     "--bb-centre",
+    #     help="centre of bounding box. format: \'lat,long\'",
+    #     type=parse_latlong
+    # )
+    # parser_DatasetSearch.add_argument(
+    #     "--bb-length",
+    #     help="size of bounding box in km",
+    #     type=float
+    # )
+    # parser_DatasetSearch.add_argument(
+    #     "--start-date",
+    #     help="earliest date, e.g. \'2012-05-29\'",
+    #     type=parse_datetime
+    # )
+    # parser_DatasetSearch.add_argument(
+    #     "--end-date",
+    #     help="latest date, e.g. \'2017-12-31\'",
+    #     type=parse_datetime
+    # )
+    # parser_DatasetSearch.set_defaults(func=cli_commands.DatasetSearch)
+    #
+    # # DatasetFields
+    # parser_DatasetFields: ArgumentParser = command_subparsers.add_parser(
+    #     "dataset-fields",
+    #     description="Return additional criteria fields for a dataset. These fields may be used in advanced queries via the additionalCriteria json parameter."
+    # )
+    # parser_DatasetFields.add_argument(
+    #     "--catalog",
+    #     help="choice of catalog. (previously 'node')",
+    #     choices=[cat.value for cat in Catalogs],
+    #     default=Catalogs.EarthExplorer.value
+    # )
+    # parser_DatasetFields.add_argument("dataset")
+    # parser_DatasetFields.set_defaults(func=cli_commands.DatasetFields)
+    #
+    # # GridToLatLong
+    # parser_GridToLatLong: ArgumentParser = command_subparsers.add_parser(
+    #     "grid2ll",
+    #     description="Convert grid locations to a lat/lng center point or polygon"
+    # )
+    # parser_GridToLatLong.add_argument("grid-type", choices=('WRS1', 'WRS2'))
+    # parser_GridToLatLong.add_argument("response-shape", choices=('point', 'polygon'))
+    # parser_GridToLatLong.add_argument("path", type=int)
+    # parser_GridToLatLong.add_argument("row", type=int)
+    # parser_GridToLatLong.set_defaults(func=cli_commands.GridToLatLong)
 
     # Parse and call func()
     args: dict = vars(parser.parse_args(args=args))

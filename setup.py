@@ -23,7 +23,7 @@ def package_data(package_dir, internal_path):
 
 setup(
     name="usgs",
-    version="0.2.4",
+    version="0.2.5",
     packages=find_packages(
         exclude=[
             "tests",

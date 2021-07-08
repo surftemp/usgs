@@ -153,18 +153,18 @@ def Create_Saved_Search_To_File(**kwargs):
     dataset = kwargs.get("dataset")
     cloud_min = kwargs.get("min_cloud_cover")
     cloud_max = kwargs.get("max_cloud_cover")
-    if cloud_min != 0 or cloud_max != 100:
-        # if cloud parameters not at their defaults then check this is supported
-        with API_Context(
-                kwargs.get("username"),
-                kwargs.get("password"),
-                catalog
-        ) as context:
-            datasets = context.DatasetSearch(dataset)
-            # filter to dataset
-            (dataset_meta,) = filter(lambda x: x["datasetName"] == dataset, datasets)
-            if not dataset_meta["supportCloudCover"]:
-                print("WARNING: this dataset does not support the min and max cloud cover options. These may be available as additional criteria.")
+    # if cloud_min != 0 or cloud_max != 100:
+    #     # if cloud parameters not at their defaults then check this is supported
+    #     with API_Context(
+    #             kwargs.get("username"),
+    #             kwargs.get("password"),
+    #             catalog
+    #     ) as context:
+    #         datasets = context.DatasetSearch(dataset)
+    #         # filter to dataset
+    #         (dataset_meta,) = filter(lambda x: x["datasetName"] == dataset, datasets)
+    #         if not dataset_meta["supportCloudCover"]:
+    #             print("WARNING: this dataset does not support the min and max cloud cover options. These may be available as additional criteria.")
 
     additional_criteria = None
     if not kwargs["noninteractive"]:
