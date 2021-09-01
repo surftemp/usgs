@@ -10,7 +10,7 @@ from .catalogs import Catalogs
 from .url_settings import API_VERSION
 from .util import staticjson
 from ..utils.latlong import LatLong
-
+import json
 
 def _login(fn):
     """
@@ -220,6 +220,60 @@ class API_Context:
         return j["data"]
 
     @_login
+    def DownloadOptions(self, dataset_name: str, scene_id: str) -> str:
+        """
+        This request is used to return the download options for a specified scene within a specified dataset.
+        """
+        j = api.JSON_Request(
+            "download-options",
+            data_params={
+                "datasetName": dataset_name,
+                "entityIds": scene_id
+            },
+            headers={"X-Auth-Token": self.api_key, 'User-Agent': 'USGS Client Tool 1.0'}
+        )
+
+        # print(json.dumps(j))
+
+        return j["data"]
+
+    @_login
+    def DownloadRequest(self, label: str, downloads: list) -> str:
+        """
+        This request is used to request downloads.
+        """
+        j = api.JSON_Request(
+            "download-request",
+            data_params={
+                "label": label,
+                "downloads": downloads
+            },
+            headers={"X-Auth-Token": self.api_key, 'User-Agent': 'USGS Client Tool 1.0'}
+        )
+
+        print(json.dumps(j))
+
+        return j["data"]
+
+    @_login
+    def DownloadRetrieve(self, label: str) -> str:
+        """
+        This request is used to retrieve the status of a download.
+        """
+        j = api.JSON_Request(
+            "download-retrieve",
+            data_params={
+                "label": label,
+            },
+            headers={"X-Auth-Token": self.api_key, 'User-Agent': 'USGS Client Tool 1.0'}
+        )
+
+        print(json.dumps(j))
+
+        return j["data"]
+
+
+    @_login
     def SceneSearch(
             self,
             dataset_name: str,
@@ -289,15 +343,6 @@ class API_Context:
         if additional_criteria:
             params["additionalCriteria"] = additional_criteria
         j = api.JSON_Request("scene-search", data_params=params, headers={"X-Auth-Token":self.api_key, 'User-Agent': 'USGS Client Tool 1.0'})
-
-        # validate against schema
-        # NOTE ODDITY: j["data"]["results"].["startTime"] is date not time!
-        # NOTE ODDITY: j["data"]["results"].["endTime"] is date not time!
-        schema = staticjson(
-            API_VERSION,
-            "scene_search.data.schema.json"
-        )
-        # jsonschema.validate(j["data"], schema, format_checker=jsonschema.FormatChecker())
 
         if check_encloses:
 

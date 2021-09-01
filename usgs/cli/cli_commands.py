@@ -10,6 +10,7 @@ from ..datastore.datastore import Datastore
 from ..api import api, util
 from ..api.api_context import API_Context
 from ..download.download_gcp import GCPStorage
+from ..download.download_usgs import DownloadUSGS
 from ..download.dataset_info import AUTH
 from ..api.search_criteria import Search_Criteria
 from ..utils import latlong
@@ -369,16 +370,23 @@ def Download(**kwargs):
                 for meta_field in meta_fields:
                     if meta_field["fieldName"] == 'Landsat Product Identifier':
                         product_id = meta_field['value']
+                    # for (k,v) in meta_field.items():
+                    #    print(str(k) + " => " + str(v))
 
-                s = GCPStorage(scene.catalog, scene.dataset, scene.id, product_id)
-                downloaded_files = s.download()
+                if product_id is None:
+                    s = DownloadUSGS(context, scene.catalog, scene.dataset, scene.id)
+                    downloaded_files = s.download()
+                else:
+                    s = GCPStorage(scene.catalog, scene.dataset, scene.id, product_id)
+                    downloaded_files = s.download()
             except Exception as ex:
                 print("ERROR - failed to download: %s (%s)"%(scene.id,str(ex)))
                 continue
             # create a new item in datastore
             # which moves downloaded file out of temp
-            datastore.new(scene, files=downloaded_files)
+            if downloaded_files:
+                datastore.new(scene, files=downloaded_files)
 
-            # report final path of download
-            final_path = datastore.get_path(scene)
-            print("Saved to {}".format(final_path))
+                # report final path of download
+                final_path = datastore.get_path(scene)
+                print("Saved to {}".format(final_path))

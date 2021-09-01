@@ -27,6 +27,7 @@ def JSON_Request(endpoint: str, api_params: dict = None, data_params: dict = Non
     params = json.dumps(api_params) if api_params else None
     data_params = json.dumps(data_params) if data_params else None
     url = urljoin(URL, endpoint)
+    print(url)
     r = requests_fn(url, params=params, data=data_params, headers=headers)
     r.raise_for_status()
     j = r.json()
@@ -59,14 +60,6 @@ def _Check_JSON(json: dict):
     if not isinstance(json, dict):
         raise API_Exception("Expected json object, got " + str(type(json)))
     try:
-        # json-schema
-        schema = staticjson(
-            API_VERSION,
-            "GenericResponse.schema.json"
-        )
-        # catch ValidationError below
-        # jsonschema.validate(json, schema)
-
         # Auth
         if json["errorCode"] == 'AUTH_INVALID' or json["errorMessage"] == 'Authentication Failed':
             raise NotAuthorisedException(json=json)
