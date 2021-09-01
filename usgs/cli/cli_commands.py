@@ -1,13 +1,10 @@
 import json
-import os
 import sys
-import tempfile
 from functools import wraps
 import getpass
-from datetime import timedelta
 
 from ..datastore.datastore import Datastore
-from ..api import api, util
+from ..api import api
 from ..api.api_context import API_Context
 from ..download.download_gcp import GCPStorage
 from ..download.download_usgs import DownloadUSGS
@@ -15,7 +12,6 @@ from ..download.dataset_info import AUTH
 from ..api.search_criteria import Search_Criteria
 from ..utils import latlong
 from ..utils.scene import Scene
-from ..cli.util import parse_datetime
 
 
 USER_PASS_WARNING = """

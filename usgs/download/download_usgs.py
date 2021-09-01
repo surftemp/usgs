@@ -3,8 +3,9 @@ import time
 import os
 import os.path
 import urllib.parse
-from .download import Download_File
 import logging
+
+from .download import Download_File
 
 LOGGER = logging.getLogger(__name__)
 
@@ -39,6 +40,7 @@ class DownloadUSGS(object):
         options = self.context.DownloadOptions(self.dataset, self.scene_id)
         if options is None:
             LOGGER.error("Download failed.  Check that you have MACHINE / M2M access for your USGS account - visit https://ers.cr.usgs.gov/profile/access")
+            return []
 
         downloads = []
         for option in options:

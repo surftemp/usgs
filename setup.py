@@ -2,7 +2,6 @@ from setuptools import setup, find_packages
 
 import os
 
-
 def package_data(package_dir, internal_path):
     paths = []
     for (dirpath, dirnames, filenames) in os.walk(

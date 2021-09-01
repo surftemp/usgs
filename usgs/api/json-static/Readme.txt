@@ -1,1 +1,0 @@
-Here you will find mostly json schemas defining the expected structure of api requests and responses. Files are versioned by usgs json api version.

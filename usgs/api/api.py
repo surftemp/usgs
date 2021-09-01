@@ -12,10 +12,8 @@ from urllib.parse import urljoin
 import datetime
 
 import requests
-import jsonschema
 
-from .url_settings import URL, API_VERSION
-from .util import staticjson
+from .url_settings import URL
 from ..utils.latlong import LatLong
 
 
@@ -27,7 +25,6 @@ def JSON_Request(endpoint: str, api_params: dict = None, data_params: dict = Non
     params = json.dumps(api_params) if api_params else None
     data_params = json.dumps(data_params) if data_params else None
     url = urljoin(URL, endpoint)
-    print(url)
     r = requests_fn(url, params=params, data=data_params, headers=headers)
     r.raise_for_status()
     j = r.json()
@@ -69,12 +66,6 @@ def _Check_JSON(json: dict):
                 "{}: {}".format(json["errorCode"], json["errorMessage"]),
                 json
             )
-
-    except jsonschema.ValidationError as e:
-        raise API_Exception(
-            "API returned improper response",
-            json
-        ) from e
 
     except KeyError as e:
         raise API_Exception("KeyError in json", json) from e

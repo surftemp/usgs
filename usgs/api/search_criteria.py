@@ -1,6 +1,5 @@
 import datetime
 from typing import NamedTuple, List
-
 import dateutil.parser
 
 from ..utils.latlong import LatLong

@@ -4,7 +4,6 @@ import logging
 import os
 import re
 from urllib.parse import urlparse
-
 import requests
 
 LOGGER = logging.getLogger(__name__)

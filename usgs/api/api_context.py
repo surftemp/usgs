@@ -2,13 +2,10 @@ import datetime
 from functools import wraps
 from typing import List
 
-import jsonschema
 import requests
 
 from . import api
 from .catalogs import Catalogs
-from .url_settings import API_VERSION
-from .util import staticjson
 from ..utils.latlong import LatLong
 import json
 
@@ -66,14 +63,6 @@ class API_Context:
     @staticmethod
     def Status() -> dict:
         j = api.JSON_Request("status")
-
-        # json-schema for data field
-        schema = staticjson(
-            API_VERSION,
-            "status.data.schema.json"
-        )
-        jsonschema.validate(j["data"], schema)
-
         return j
 
     @staticmethod
@@ -104,14 +93,6 @@ class API_Context:
                 "X-Auth-Token":api_key
             }
         )
-
-        # json-schema for data field
-        schema = staticjson(
-            API_VERSION,
-            "grid2ll.data.schema.json"
-        )
-        jsonschema.validate(j["data"], schema)
-
         return j["data"]
 
     @staticmethod
@@ -137,13 +118,6 @@ class API_Context:
             },
             requests_fn=requests.post
         )
-
-        # json-schema for data field
-        schema = staticjson(
-            API_VERSION,
-            "login.data.schema.json"
-        )
-        jsonschema.validate(j["data"], schema)
 
         return j["data"]
 
@@ -187,13 +161,6 @@ class API_Context:
 
         j = api.JSON_Request("datasets", params)
 
-        # json-schema for data field
-        schema = staticjson(
-            API_VERSION,
-            "dataset_search.data.schema.json"
-        )
-        # jsonschema.validate(j["data"], schema, format_checker=jsonschema.FormatChecker())
-
         return j["data"]
 
     @_login
@@ -209,13 +176,6 @@ class API_Context:
                 "apiKey": self.api_key
             }
         )
-
-        # json-schema for data field
-        schema = staticjson(
-            API_VERSION,
-            "dataset_fields.data.schema.json"
-        )
-        # jsonschema.validate(j["data"], schema)
 
         return j["data"]
 
@@ -233,7 +193,7 @@ class API_Context:
             headers={"X-Auth-Token": self.api_key, 'User-Agent': 'USGS Client Tool 1.0'}
         )
 
-        # print(json.dumps(j))
+        print(json.dumps(j))
 
         return j["data"]
 
@@ -436,13 +396,6 @@ class API_Context:
             params["additionalCriteria"] = additional_criteria
         j = api.JSON_Request("hits", params)
 
-        # json-schema for data field
-        schema = staticjson(
-            API_VERSION,
-            "scene_search_hits.data.schema.json"
-        )
-        jsonschema.validate(j["data"], schema)
-
         return j["data"]
 
     @_login
@@ -458,13 +411,5 @@ class API_Context:
             },
             headers={"X-Auth-Token":self.api_key}
         )
-
-        # validate against schema
-        schema = staticjson(
-            API_VERSION,
-            "scene_metadata.data.schema.json"
-        )
-        # jsonschema.validate(j["data"], schema,
-        #                    format_checker=jsonschema.FormatChecker())
 
         return j["data"]
