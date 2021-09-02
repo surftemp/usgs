@@ -20,10 +20,8 @@ Primary interest is towards querying and obtaining Landsat 8 and ASTER data.
 A USGS / EROS account (ERS account) is required to access the API.
 Register for an account @ https://ers.cr.usgs.gov/login/
 
-It is also understood that one should apply for machine-to-machine (M2M) access,
-although this is not clearly stated in the API documentation.
-M2M allows access to additional api endpoints which are not used by this 
-python library.
+You should also apply for MACHINE / M2M access for downloads of scenes other than landsat8.  
+Apply for this access via https://ers.cr.usgs.gov/profile/access
 
 ## Installation
 
