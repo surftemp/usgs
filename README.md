@@ -167,7 +167,7 @@ Command | Description
 `search-create` | Create a saved search query which may be executed with `search-run`
 `search-run` | Execute a search query
 `download` | Download api scenes
-~~scene-metadata~~* | ~~Returns scene metadata~~
+`scene-metadata` | Returns scene metadata
 ~~dataset-search~~* | ~~Search for datasets by name and spatial / temporal range~~
 ~~dataset-fields~~* | ~~Return additional criteria fields for a dataset~~
 ~~grid2ll~~* | ~~Convert grid locations to a lat/lng center point or polygon~~
