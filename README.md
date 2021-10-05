@@ -219,6 +219,18 @@ EE, LANDSAT_8_C1, LC80920742019251LGN00
 
 To see more detail on search results supply the `--full-details` flag.
 
+To print metadata for a scene use the `scene-metadata` command, passing the dataset and id:
+
+```
+> usgs scene-metadata LANDSAT_8_C1 LC80920742019107LGN00
+{
+  "browse": [],
+  "cloudCover": null,
+  "entityId": "2427002506",
+  ...
+}
+```
+
 #### 3. Download a scene
 
 The `download` command requires either the `USGS_DATADIR` environment variable
