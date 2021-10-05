@@ -199,19 +199,19 @@ def __main__(args=None):
     parser_Download.set_defaults(func=cli_commands.Download)
 
     # SceneMetadata
-    # parser_SceneMetadata: ArgumentParser = command_subparsers.add_parser(
-    #     "scene-metadata",
-    #     description="Returns scene metadata"
-    # )
-    # parser_SceneMetadata.add_argument(
-    #     "--catalog",
-    #     help="choice of catalog. (previously 'node')",
-    #     choices=[cat.value for cat in Catalogs],
-    #     default=Catalogs.EarthExplorer.value
-    # )
-    # parser_SceneMetadata.add_argument("dataset")
-    # parser_SceneMetadata.add_argument("id")
-    # parser_SceneMetadata.set_defaults(func=cli_commands.SceneMetadata)
+    parser_SceneMetadata: ArgumentParser = command_subparsers.add_parser(
+         "scene-metadata",
+         description="Returns scene metadata"
+    )
+    parser_SceneMetadata.add_argument(
+         "--catalog",
+         help="choice of catalog. (previously 'node')",
+         choices=[cat.value for cat in Catalogs],
+         default=Catalogs.EarthExplorer.value
+    )
+    parser_SceneMetadata.add_argument("dataset")
+    parser_SceneMetadata.add_argument("id")
+    parser_SceneMetadata.set_defaults(func=cli_commands.SceneMetadata)
 
     # DatasetSearch
     # parser_DatasetSearch: ArgumentParser = command_subparsers.add_parser(
