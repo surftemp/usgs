@@ -298,6 +298,7 @@ def Download(**kwargs):
     datastore = Datastore(kwargs.get("data_dir"))
     jobs = []
 
+    suffix_filter = kwargs.get("suffix_filter")
     scene = kwargs.get("scene")
     if scene:
         # just the one scene specified @ command line
@@ -370,10 +371,10 @@ def Download(**kwargs):
                     #    print(str(k) + " => " + str(v))
 
                 if product_id is None:
-                    s = DownloadUSGS(context, scene.catalog, scene.dataset, scene.id)
+                    s = DownloadUSGS(context, scene.catalog, scene.dataset, scene.id, suffix_filter=suffix_filter)
                     downloaded_files = s.download()
                 else:
-                    s = GCPStorage(scene.catalog, scene.dataset, scene.id, product_id)
+                    s = GCPStorage(scene.catalog, scene.dataset, scene.id, product_id, suffix_filter=suffix_filter)
                     downloaded_files = s.download()
             except Exception as ex:
                 print("ERROR - failed to download: %s (%s)"%(scene.id,str(ex)))

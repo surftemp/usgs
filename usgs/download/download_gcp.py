@@ -18,7 +18,7 @@ class GCPStorage(object):
     Handle the download of a particular scene, currently only tested with catalog=EE and dataset=LANDSAT_8_C1
     """
 
-    def __init__(self,catalog,dataset,scene_id,product_id):
+    def __init__(self,catalog,dataset,scene_id,product_id,suffix_filter=""):
         """
         Set up, specifying the details of the scene that will be downloaded
 
@@ -26,11 +26,13 @@ class GCPStorage(object):
         :param dataset: dataset for example LANDSAT_8_C1
         :param scene_id: scene_id for example LC80920742019251LGN00
         :param product_id: product_id for example LC08_L1TP_092074_20190908_20190917_01_T1
+        :param suffix_filter: filter out filenames not having this suffix
         """
         self.catalog = catalog
         self.dataset = dataset
         self.scene_id = scene_id
         self.product_id = product_id
+        self.suffix_filter = suffix_filter
         self.destination_folder = tempfile.TemporaryDirectory()
 
     def download(self):
@@ -59,6 +61,9 @@ class GCPStorage(object):
         # download each URL and store under the output folder
         downloaded_files = []
         for (filename,url) in filename_url_pairs:
+            if self.suffix_filter and not filename.endswith(self.suffix_filter):
+                LOGGER.info("Skipping: {} with no match to filter-suffix {}".format(filename,self.suffix_filter))
+                continue
             resp =  requests.get(url)
             resp.raise_for_status()
             LOGGER.info("Downloading: {}".format(filename))

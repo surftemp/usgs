@@ -15,7 +15,7 @@ class DownloadUSGS(object):
     Your account may likely need to request access at this page: https://ers.cr.usgs.gov/profile/access
     """
 
-    def __init__(self,context,catalog,dataset,scene_id):
+    def __init__(self,context,catalog,dataset,scene_id,suffix_filter=""):
         """
         Set up, specifying the details of the scene that will be downloaded
 
@@ -23,11 +23,13 @@ class DownloadUSGS(object):
         :param catalog: catalog for example EE
         :param dataset: dataset for example LANDSAT_8_C1
         :param scene_id: scene_id for example LC80920742019251LGN00
+        :param suffix_filter: filter out files not having this suffix
         """
         self.context = context
         self.catalog = catalog
         self.dataset = dataset
         self.scene_id = scene_id
+        self.suffix_filter = suffix_filter
         self.destination_folder = tempfile.TemporaryDirectory()
 
     def download(self):
@@ -78,6 +80,9 @@ class DownloadUSGS(object):
             os.makedirs(outfolder)
 
             for (filename, url) in filename_url_pairs:
+                if self.suffix_filter and not filename.endswith(self.suffix_filter):
+                    LOGGER.info("Skipping: {} with no match to filter-suffix {}".format(filename, self.suffix_filter))
+                    continue
                 downloaded_files.append(Download_File(url, outfolder, metadata={},
                                                       auth=(self.context.username, self.context.password)))
 

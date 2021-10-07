@@ -185,6 +185,11 @@ def __main__(args=None):
         "download",
         description="Download api scenes. Specify an individual data product with --scene, or request multiple data products via CSV file --csv."
     )
+    parser_Download.add_argument(
+        "--suffix-filter",
+        type=str,
+        default=""
+    )
     parser_Download_Target = parser_Download.add_mutually_exclusive_group(
         required=True)
     parser_Download_Target.add_argument(
