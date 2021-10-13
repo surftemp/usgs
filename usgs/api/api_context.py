@@ -294,8 +294,7 @@ class API_Context:
         if start_date or end_date:
             if end_date:
                 # extend the end-date by 1 day, as the API seems to check for scenes acquired before the end date
-                end_date_dt = datetime.datetime.strptime(end_date,"%Y-%m-%d")
-                end_date = (end_date_dt+datetime.timedelta(days=1)).strftime("%Y-%m-%d")
+                end_date = (end_date+datetime.timedelta(days=1))
             params["sceneFilter"]["acquisitionFilter"] = api.TemporalFilter(
                 start_date,
                 end_date
