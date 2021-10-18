@@ -256,6 +256,23 @@ INFO:usgs.download.gcp:Downloading: LC08_L1TP_092074_20190908_20190917_01_T1_MTL
 Saved to /tmp/EE/LANDSAT_8_C1/LC80920742019251LGN00
 ```
 
+The download option will not attempt to download a scene that has been previously downloaded to the data directory.  
+
+Use the `--ignore-cache` option to override the cached entry and always re-download the files.
+
+Depending on the dataset, a scene may comprise multiple files.  For example a large .h5 file and a small .xml file containing metadata.
+
+In this case, to download just the metadata file, use the `--suffix-filter` option to select only .xml files as follows:
+
+```
+> usgs download --scene EE ECOSTRESS_ECO1BRAD 2492617597 --suffix-filter xml --ignore-cache
+INFO:usgs.download.download_usgs:Skipping: ECOSTRESS_L1B_RAD_18397_033_20211003T222511_0601_01.h5 with no match to filter-suffix xml
+INFO:usgs.download.download:Download https://e4ftl01.cr.usgs.gov/ECOA/ECOSTRESS/ECO1BRAD.001/2021.10.03/ECOSTRESS_L1B_RAD_18397_033_20211003T222511_0601_01.h5.xml
+INFO:usgs.download.download:Destination on disk: /var/folders/5k/mnb_s_l11fv6n9kl8dstbf7r0000gp/T/tmp3y9kyi_1/EE/ECOSTRESS_ECO1BRAD/2492617597/ECOSTRESS_L1B_RAD_18397_033_20211003T222511_0601_01.h5.xml
+INFO:usgs.download.download:239% (8192/3424 bytes) @ 3.53 MB/s
+INFO:usgs.download.download:done
+```
+
 ##### Piping search to csv
 
 To download multiple scenes it is possible to supply a comma separated values (CSV)
