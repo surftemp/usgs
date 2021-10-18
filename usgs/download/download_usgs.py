@@ -85,7 +85,6 @@ class DownloadUSGS(object):
                     continue
                 downloaded_files.append(Download_File(url, outfolder, metadata={},
                                                       auth=(self.context.username, self.context.password)))
-
         return downloaded_files
 
 

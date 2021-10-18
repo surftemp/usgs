@@ -2,6 +2,7 @@ import json
 import sys
 from functools import wraps
 import getpass
+import time
 
 from ..datastore.datastore import Datastore
 from ..api import api
@@ -325,7 +326,7 @@ def Download(**kwargs):
 
     # look for scenes already downloaded
     on_disk = {scene: datastore.exists(scene) for scene in jobs}
-    if all(on_disk.values()):
+    if not kwargs.get("ignore_cache") and all(on_disk.values()):
         print("All requested downloads are already on disk!")
         return
 
@@ -342,7 +343,7 @@ def Download(**kwargs):
     for scene in jobs:
 
         # does it already exist on disk?
-        if on_disk.get(scene):
+        if on_disk.get(scene) and not kwargs.get("ignore_cache"):
             print("Already on disk")
             continue
 
@@ -351,39 +352,38 @@ def Download(**kwargs):
                 kwargs.get("password"),
                 scene.catalog
         ) as context:
+            retry_count = 5
+            retry_delay_s = 10
+            while retry_count > 0:
+                retry_count -= 1
+                try:
+                    meta = context.SceneMetadata(scene.dataset, scene.id)
+                    product_id = None
+                    meta_fields = meta["metadata"]
+                    for meta_field in meta_fields:
+                        if meta_field["fieldName"] == 'Landsat Product Identifier':
+                            product_id = meta_field['value']
 
-            try:
-                meta = context.SceneMetadata(scene.dataset, scene.id)
+                    if product_id is None:
+                        s = DownloadUSGS(context, scene.catalog, scene.dataset, scene.id, suffix_filter=suffix_filter)
+                        downloaded_files = s.download()
+                    else:
+                        s = GCPStorage(scene.catalog, scene.dataset, scene.id, product_id, suffix_filter=suffix_filter)
+                        downloaded_files = s.download()
+                except Exception as ex:
+                    print("ERROR - failed to download: %s (%s) with %d retries left"%(scene.id,str(ex),retry_count))
+                    if retry_count > 0:
+                        print("Waiting %d seconds before retry" % retry_delay_s)
+                        time.sleep(retry_delay_s)
+                        retry_delay_s *= 2
+                    continue
+                # create a new item in datastore
+                # which moves downloaded file out of temp
+                if downloaded_files:
+                    datastore.new(scene, files=downloaded_files)
 
-                # 1.4.0: downloadUrl no longer in Scene Metadata!!
-                # in the future downloadUrl will probably be depreciated in
-                # favour of the M2M api download endpoint
+                    # report final path of download
+                    final_path = datastore.get_path(scene)
+                    print("Saved to {}".format(final_path))
+                break
 
-                # horrible workaround is to repeat scene search :-(
-
-
-                product_id = None
-                meta_fields = meta["metadata"]
-                for meta_field in meta_fields:
-                    if meta_field["fieldName"] == 'Landsat Product Identifier':
-                        product_id = meta_field['value']
-                    # for (k,v) in meta_field.items():
-                    #    print(str(k) + " => " + str(v))
-
-                if product_id is None:
-                    s = DownloadUSGS(context, scene.catalog, scene.dataset, scene.id, suffix_filter=suffix_filter)
-                    downloaded_files = s.download()
-                else:
-                    s = GCPStorage(scene.catalog, scene.dataset, scene.id, product_id, suffix_filter=suffix_filter)
-                    downloaded_files = s.download()
-            except Exception as ex:
-                print("ERROR - failed to download: %s (%s)"%(scene.id,str(ex)))
-                continue
-            # create a new item in datastore
-            # which moves downloaded file out of temp
-            if downloaded_files:
-                datastore.new(scene, files=downloaded_files)
-
-                # report final path of download
-                final_path = datastore.get_path(scene)
-                print("Saved to {}".format(final_path))

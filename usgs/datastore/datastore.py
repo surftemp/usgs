@@ -135,7 +135,9 @@ class Datastore:
         :param files: files to move into datastore
         """
         if self.exists(scene):
-            raise ValueError("Scene already exists in datastore: {}".format(scene))
+            print("Scene already exists in datastore: {}, replacing it".format(scene))
+            self.delete(scene)
+
         path = self.get_path(scene)
         os.makedirs(path)
         if files:

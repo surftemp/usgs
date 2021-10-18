@@ -190,6 +190,11 @@ def __main__(args=None):
         type=str,
         default=""
     )
+    parser_Download.add_argument(
+        "--ignore-cache",
+        help="download even if some file(s) for this scene are already in the cache",
+        action='store_true'
+    )
     parser_Download_Target = parser_Download.add_mutually_exclusive_group(
         required=True)
     parser_Download_Target.add_argument(
