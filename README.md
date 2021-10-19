@@ -23,6 +23,8 @@ Register for an account @ https://ers.cr.usgs.gov/login/
 You should also apply for MACHINE / M2M access for downloads of scenes other than landsat8.  
 Apply for this access via https://ers.cr.usgs.gov/profile/access
 
+Some datasets (eg ECOSTRESS) may also require an account on https://urs.earthdata.nasa.gov/profile - it appears that both this account and the ERS account need the same credentials (username and password need to match).
+
 ## Installation
 
 ### Git clone (or download) this repository
