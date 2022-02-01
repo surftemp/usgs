@@ -357,12 +357,20 @@ def Download(**kwargs):
             while retry_count > 0:
                 retry_count -= 1
                 try:
-                    meta = context.SceneMetadata(scene.dataset, scene.id)
                     product_id = None
-                    meta_fields = meta["metadata"]
-                    for meta_field in meta_fields:
-                        if meta_field["fieldName"] == 'Landsat Product Identifier':
-                            product_id = meta_field['value']
+                    meta = None
+                    try:
+                        meta = context.SceneMetadata(scene.dataset, scene.id)
+                        if meta is not None:
+                            meta_fields = meta["metadata"]
+                            for meta_field in meta_fields:
+                                if meta_field["fieldName"] == 'Landsat Product Identifier':
+                                    product_id = meta_field['value']
+                    except:
+                        pass
+
+                    if meta is None:
+                        print("WARNING - failed to get scene-metadata prior to download")
 
                     if product_id is None:
                         s = DownloadUSGS(context, scene.catalog, scene.dataset, scene.id, suffix_filter=suffix_filter)

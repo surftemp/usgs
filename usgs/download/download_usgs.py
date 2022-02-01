@@ -50,6 +50,7 @@ class DownloadUSGS(object):
             available = option["available"]
             if available:
                 downloads.append({'entityId': option['entityId'], 'productId': option['id']})
+                LOGGER.info(displayId + " is available for download")
             else:
                 LOGGER.warning(displayId + " is not available for download")
 

@@ -193,8 +193,6 @@ class API_Context:
             headers={"X-Auth-Token": self.api_key, 'User-Agent': 'USGS Client Tool 1.0'}
         )
 
-        print(json.dumps(j))
-
         return j["data"]
 
     @_login

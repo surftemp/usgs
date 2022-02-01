@@ -66,7 +66,7 @@ class GCPStorage(object):
                 continue
             resp =  requests.get(url)
             resp.raise_for_status()
-            LOGGER.info("Downloading: {}".format(filename))
+            LOGGER.info("Downloading: {} from {}".format(filename,url))
             filepath = os.path.join(outfolder,filename)
             with open(filepath,"wb") as f:
                 f.write(resp.content)
