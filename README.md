@@ -98,11 +98,13 @@ HDDSExplorer | HDDS | https://hddsexplorer.usgs.gov/
 
 ### *dataset*
 
-The following dataset is of primary interest
+The following datasets are of primary interest
 
 Name | Catalog | Dataset
 --- | --- | ---
 Landsat 8 OLI/TIRS Collection 1 Level-1 | EE | LANDSAT_8_C1
+Landsat 8 OLI/TIRS Collection 1 Level-1 | EE | LANDSAT_OT_C2_L2
+Ecostress                               | EE | ECOSTRESS_ECO1BRAD
 
 This library was built with the above dataset targetted. 
 The default behaviour may be sufficient for other datasets,
@@ -275,6 +277,11 @@ INFO:usgs.download.download:239% (8192/3424 bytes) @ 3.53 MB/s
 INFO:usgs.download.download:done
 ```
 
+Landsat8 Level1 data will be downloaded from Google Cloud.  Other datasets will be downloaded from the USGS site, which may require "Machine" access.  You can request this access by logging in to https://ers.cr.usgs.gov/profile/access
+
+![image](https://user-images.githubusercontent.com/58978249/152136005-5d8ca56e-4d6d-405e-9cb9-430428b1227d.png)
+
+
 ##### Piping search to csv
 
 To download multiple scenes it is possible to supply a comma separated values (CSV)
@@ -290,4 +297,3 @@ file as input to `download`:
 The API is rate restricted to 1 concurrent request.
 Incomplete requests incur a 15 min timeout.
 
-This package has been tested on the LANDSAT_8_C1 dataset. 
