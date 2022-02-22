@@ -142,7 +142,10 @@ class Datastore:
         os.makedirs(path)
         if files:
             for file in files:
-                shutil.move(file, path)
+                try:
+                    shutil.move(file, path)
+                except Exception as ex:
+                    print("Warning: problem moving file %s to directory %s: %s" % (file,path,str(ex)))
 
     def delete_all(self, yes_really: bool = False):
         """There is no going back"""
