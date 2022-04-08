@@ -11,7 +11,7 @@ LOGGER = logging.getLogger(__name__)
 #
 BASE_URL = "https://storage.googleapis.com/gcp-public-data-landsat/LC08/01/%s/%s/%s/%s" # row,col,product_id,filename
 SUFFIXES = ["B1.TIF","B2.TIF","B3.TIF", "B4.TIF","B5.TIF","B6.TIF",
-         "B7.TIF","B8.TIF","B9.TIF", "B10.TIF","B11.TIF","BQA.TIF","MTL.txt"]
+         "B7.TIF","B8.TIF","B9.TIF", "B10.TIF","B11.TIF","BQA.TIF","MTL.txt","ANG.txt"]
 
 class GCPStorage(object):
     """
