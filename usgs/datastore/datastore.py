@@ -2,6 +2,10 @@ import os
 import shutil
 from typing import List
 import json
+import tarfile
+import logging
+
+LOGGER = logging.getLogger(__name__)
 
 from ..utils.scene import Scene
 
@@ -128,6 +132,11 @@ class Datastore:
         if os.path.isdir(path):
             shutil.rmtree(path)
 
+    def unpack(self, file, path):
+        if file.endswith(".tar"):
+            with tarfile.open(file) as tar:
+                tar.extractall(path)
+
     def new(self, scene: Scene, files: List[str] = None):
         """
         Create and populate new Scene(catalog, dataset, id) in datastore
@@ -143,7 +152,10 @@ class Datastore:
         if files:
             for file in files:
                 try:
-                    shutil.move(file, path)
+                    if file.endswith(".tar"):
+                        self.unpack(file, path) # if the file is an archive, unpack it
+                    else:
+                        shutil.move(file, path)
                 except Exception as ex:
                     print("Warning: problem moving file %s to directory %s: %s" % (file,path,str(ex)))
 
