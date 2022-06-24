@@ -93,7 +93,7 @@ def __main__(args=None):
 
     parser_Search_Create.add_argument(
         "--noninteractive",
-        help="run without promting user",
+        help="run without prompting user",
         action='store_true'
     )
 
