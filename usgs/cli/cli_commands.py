@@ -314,6 +314,10 @@ def Download(**kwargs):
 
             jobs = list(map(line_to_scene, f.readlines()))
 
+    if len(jobs) == 0:
+        print("No scenes provided for download")
+        return
+    
     # require that all products to be downloaded come from the same catalog
     # and dataset
     catalog_dataset_pairs = set(

@@ -204,7 +204,7 @@ def __main__(args=None):
     )
     parser_Download_Target.add_argument(
         "--csv",
-        help="comma seperated value file of scenes to download"
+        help="comma separated value file of scenes to download"
     )
     parser_Download.set_defaults(func=cli_commands.Download)
 
