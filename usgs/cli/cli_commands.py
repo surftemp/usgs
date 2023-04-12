@@ -300,6 +300,9 @@ def Download(**kwargs):
     jobs = []
 
     suffix_filter = kwargs.get("suffix_filter")
+    prune_suffixes = kwargs.get("prune_suffixes").split(",")
+    prune_suffixes = list(map(lambda suffix: suffix.strip(), prune_suffixes))
+
     scene = kwargs.get("scene")
     if scene:
         # just the one scene specified @ command line
@@ -392,7 +395,7 @@ def Download(**kwargs):
                 # create a new item in datastore
                 # which moves downloaded file out of temp
                 if downloaded_files:
-                    datastore.new(scene, files=downloaded_files)
+                    datastore.new(scene, files=downloaded_files, prune_suffixes=prune_suffixes)
 
                     # report final path of download
                     final_path = datastore.get_path(scene)

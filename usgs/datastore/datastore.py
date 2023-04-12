@@ -132,12 +132,19 @@ class Datastore:
         if os.path.isdir(path):
             shutil.rmtree(path)
 
-    def unpack(self, file, path):
+    def unpack(self, file, path, prune_suffixes):
         if file.endswith(".tar"):
             with tarfile.open(file) as tar:
                 tar.extractall(path)
+            if prune_suffixes:
+                for filename in os.listdir(path):
+                    for suffix in prune_suffixes:
+                        if filename.lower().endswith(suffix.lower()):
+                            remove_path = os.path.join(path,filename)
+                            os.remove(remove_path)
+                            break
 
-    def new(self, scene: Scene, files: List[str] = None):
+    def new(self, scene: Scene, files: List[str] = None, prune_suffixes: List[str] = None):
         """
         Create and populate new Scene(catalog, dataset, id) in datastore
 
@@ -153,7 +160,7 @@ class Datastore:
             for file in files:
                 try:
                     if file.endswith(".tar"):
-                        self.unpack(file, path) # if the file is an archive, unpack it
+                        self.unpack(file, path, prune_suffixes) # if the file is an archive, unpack it
                     else:
                         shutil.move(file, path)
                 except Exception as ex:
