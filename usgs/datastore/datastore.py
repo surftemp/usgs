@@ -133,16 +133,15 @@ class Datastore:
             shutil.rmtree(path)
 
     def unpack(self, file, path, prune_suffixes):
-        if file.endswith(".tar"):
-            with tarfile.open(file) as tar:
-                tar.extractall(path)
-            if prune_suffixes:
-                for filename in os.listdir(path):
-                    for suffix in prune_suffixes:
-                        if filename.lower().endswith(suffix.lower()):
-                            remove_path = os.path.join(path,filename)
-                            os.remove(remove_path)
-                            break
+        with tarfile.open(file) as tar:
+            tar.extractall(path)
+        if prune_suffixes:
+            for filename in os.listdir(path):
+                for suffix in prune_suffixes:
+                    if filename.lower().endswith(suffix.lower()):
+                        remove_path = os.path.join(path,filename)
+                        os.remove(remove_path)
+                        break
 
     def new(self, scene: Scene, files: List[str] = None, prune_suffixes: List[str] = None):
         """
@@ -159,7 +158,8 @@ class Datastore:
         if files:
             for file in files:
                 try:
-                    if file.endswith(".tar"):
+                    suffix = os.path.splitext(file)[1].lower()
+                    if suffix == ".tar" or suffix == "":
                         self.unpack(file, path, prune_suffixes) # if the file is an archive, unpack it
                     else:
                         shutil.move(file, path)
