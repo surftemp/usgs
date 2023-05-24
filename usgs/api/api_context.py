@@ -9,6 +9,19 @@ from .catalogs import Catalogs
 from ..utils.latlong import LatLong
 import json
 
+# derived from https://m2m.cr.usgs.gov/api/test/json/ API dataset-filters
+metadata_filter_ids = {
+    "LANDSAT_OT_C2_L2": {
+        "row": "5e83d14ff1eda1b8",
+        "path": "5e83d14fb9436d88"
+    },
+    "LANDSAT_OT_C2_L1": {
+        "day_not_night": "5e81f14f61bda7c4",
+        "row": "5e81f14f8d2a7c24",
+        "path": "5e81f14f8faf8048"
+    }
+}
+
 def _login(fn):
     """
     wrapper marking functions which require login / api key on API_Context.
@@ -245,6 +258,9 @@ class API_Context:
             max_results: int = 10,
             starting_number: int = 1,
             sort_order: str = "ASC",
+            day_not_night: bool = None,
+            row: int = None,
+            path: int = None,
             check_encloses: bool = False,
             check_using: str = "metadata"
     ) -> dict:
@@ -264,6 +280,9 @@ class API_Context:
         :param max_results: max 50,000
         :param starting_number: pagination
         :param sort_order: ASC or DESC
+        :param day_not_night: set to True for collecting daytime only, set to False for collecting night time only
+        :param row: filter by the row number
+        :param path: filter by the path number
         :param check_encloses: True iff extra checks should be performed that the image encloses the bounding box
         :param check_using: metadata or wrs2 - how to check that scenes include all/most of the bounding box
         """
@@ -273,17 +292,19 @@ class API_Context:
             raise ValueError("sort_order must be ASC or DESC")
         params = {
             "datasetName": dataset_name,
-            "sceneFilter": {
-                "cloudCoverFilter": {
-                    "includeUnknown": include_unknown_cloud_cover,
-                    "min": min_cloud_cover,
-                    "max": max_cloud_cover
-                }
-            },
+            "sceneFilter": {},
             "maxResults": max_results,
             "startingNumber": starting_number,
             "sortDirection": sort_order
         }
+
+        if min_cloud_cover > 0 or max_cloud_cover < 100:
+            params["sceneFilter"]["cloudCoverFilter"] = {
+                "includeUnknown": include_unknown_cloud_cover,
+                "min": min_cloud_cover,
+                "max": max_cloud_cover
+            }
+
         if lower_left and upper_right:
             params["sceneFilter"]["spatialFilter"] = api.SpatialFilterMBR(
                 lower_left,
@@ -301,6 +322,52 @@ class API_Context:
             params["sceneFilter"]["seasonalFilter"] = months
         if additional_criteria:
             params["additionalCriteria"] = additional_criteria
+
+        metadata_filters = []
+        if day_not_night is not None:
+            filter_id = metadata_filters.get(dataset_name,{}).get("day_or_night","")
+            if filter_id:
+                metadata_filters.append({
+                    "filterId": filter_id,
+                    "filterType": "value",
+                    "value": "DAY" if day_not_night else "NIGHT",
+                    "operand": "="
+                })
+            else:
+                print(f"Warning: DAY/NIGHT selection not supported for dataset {dataset_name}")
+
+        if row is not None:
+            filter_id = metadata_filters.get(dataset_name,{}).get("row","")
+            if filter_id:
+                metadata_filters.append({
+                    {
+                        "filterId": filter_id,
+                        "filterType": "between",
+                        "firstValue": row,
+                        "secondValue": row
+                    },
+                })
+
+        if path is not None:
+            filter_id = metadata_filters.get(dataset_name,{}).get("path","")
+            if filter_id:
+                metadata_filters.append({
+                    {
+                        "filterId": filter_id,
+                        "filterType": "between",
+                        "firstValue": path,
+                        "secondValue": path
+                    },
+                })
+
+        if len(metadata_filters) == 1:
+            params["sceneFilter"]["metadataFilter"] = metadata_filters[0]
+        elif len(metadata_filters) > 1:
+            params["sceneFilter"]["metadataFilter"] = {
+                "filterType": "and",
+                "childFilters": metadata_filters
+            }
+
         j = api.JSON_Request("scene-search", data_params=params, headers={"X-Auth-Token":self.api_key, 'User-Agent': 'USGS Client Tool 1.0'})
 
         if check_encloses:

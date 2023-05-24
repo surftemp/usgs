@@ -142,6 +142,21 @@ def __main__(args=None):
         default="ASC"
     )
     parser_Search_Create.add_argument(
+        "--day-not-night",
+        type=bool,
+        default=None
+    )
+    parser_Search_Create.add_argument(
+        "--row",
+        type=int,
+        default=None
+    )
+    parser_Search_Create.add_argument(
+        "--path",
+        type=int,
+        default=None
+    )
+    parser_Search_Create.add_argument(
         "file-out",
         help="Output text file. This file is json formatted, "
              "so it is suggested to assign a .json extension."
@@ -171,6 +186,7 @@ def __main__(args=None):
         type=str,
         default="wrs2"
     )
+
     parser_Search_Run.set_defaults(func=cli_commands.Run_Saved_Search)
 
     # Download

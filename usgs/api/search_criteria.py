@@ -23,6 +23,9 @@ class Search_Criteria(NamedTuple):
     max_results: int = 10
     starting_number: int = 1
     sort_order: str = "ASC"
+    day_not_night: bool = None
+    row: int = "",
+    path: int = ""
 
     def json(self) -> dict:
         D = self._asdict()
@@ -70,5 +73,8 @@ class Search_Criteria(NamedTuple):
             additional_criteria = J["additional_criteria"],
             max_results = J["max_results"],
             starting_number = J["starting_number"],
-            sort_order = J["sort_order"]
+            sort_order = J["sort_order"],
+            day_not_night = J.get("day_not_night",None),
+            row = J.get("row",None),
+            path = J.get("path",None)
         )

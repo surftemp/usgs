@@ -151,6 +151,10 @@ def Create_Saved_Search_To_File(**kwargs):
     dataset = kwargs.get("dataset")
     cloud_min = kwargs.get("min_cloud_cover")
     cloud_max = kwargs.get("max_cloud_cover")
+    day_not_night = kwargs.get("day_not_night")
+    row = kwargs.get("row")
+    path = kwargs.get("path")
+
     # if cloud_min != 0 or cloud_max != 100:
     #     # if cloud parameters not at their defaults then check this is supported
     #     with API_Context(
@@ -266,6 +270,9 @@ def Create_Saved_Search_To_File(**kwargs):
         max_results=kwargs.get("max_results"),
         starting_number=kwargs.get("starting_number"),
         sort_order=kwargs.get("sort_order"),
+        day_not_night=day_not_night,
+        row=row,
+        path=path
     )
 
     with open(kwargs.get("file-out"), "w") as f:
@@ -284,7 +291,8 @@ def Run_Saved_Search(**kwargs):
     ) as context:
         # when we unpack Search_Criteria into SceneSearch() we need to
         # throw away 'catalog', which is the first member of the tuple
-        J = context.SceneSearch(*criteria[1:],check_encloses=kwargs.get("check_encloses"),check_using=kwargs.get("check_using"))
+        J = context.SceneSearch(*criteria[1:],check_encloses=kwargs.get("check_encloses"),
+                                check_using=kwargs.get("check_using"))
         for scene in J["results"]:
             if kwargs.get("full_details"):
                 print(json.dumps(scene, indent=2))
