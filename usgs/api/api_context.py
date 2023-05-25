@@ -325,7 +325,7 @@ class API_Context:
 
         metadata_filters = []
         if day_not_night is not None:
-            filter_id = metadata_filters.get(dataset_name,{}).get("day_or_night","")
+            filter_id = metadata_filter_ids.get(dataset_name,{}).get("day_or_night","")
             if filter_id:
                 metadata_filters.append({
                     "filterId": filter_id,
