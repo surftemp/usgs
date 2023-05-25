@@ -1,6 +1,6 @@
 {
   "catalog": "EE",
-  "dataset_name": "LANDSAT_8_C1",
+  "dataset_name": "LANDSAT_OT_C2_L2",
   "lower_left": {
     "latitude": -20.91,
     "longitude": 151.16

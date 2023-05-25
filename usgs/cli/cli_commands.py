@@ -151,7 +151,11 @@ def Create_Saved_Search_To_File(**kwargs):
     dataset = kwargs.get("dataset")
     cloud_min = kwargs.get("min_cloud_cover")
     cloud_max = kwargs.get("max_cloud_cover")
-    day_not_night = kwargs.get("day_not_night")
+    day_not_night = None
+    if kwargs.get("day_only") and not kwargs.get("night_only"):
+        day_not_night = True
+    if kwargs.get("night_only") and not kwargs.get("day_only"):
+        day_not_night = False
     row = kwargs.get("row")
     path = kwargs.get("path")
 

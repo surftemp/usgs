@@ -108,7 +108,7 @@ def __main__(args=None):
     )
     parser_Search_Create.add_argument(
         "--exclude-unknown-cloud-cover",
-        help="exclunde scenes from search where cloud cover is unknown",
+        help="exclude scenes from search where cloud cover is unknown",
         action='store_true'
     )
     parser_Search_Create.add_argument(
@@ -141,11 +141,19 @@ def __main__(args=None):
         choices=('ASC', 'DESC'),
         default="ASC"
     )
+
     parser_Search_Create.add_argument(
-        "--day-not-night",
-        type=bool,
-        default=None
+        "--day-only",
+        help="exclude scenes from search which were acquired at night",
+        action='store_true'
     )
+
+    parser_Search_Create.add_argument(
+        "--night-only",
+        help="exclude scenes from search which were acquired in daytime",
+        action='store_true'
+    )
+
     parser_Search_Create.add_argument(
         "--row",
         type=int,

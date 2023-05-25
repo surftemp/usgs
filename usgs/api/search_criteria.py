@@ -24,7 +24,7 @@ class Search_Criteria(NamedTuple):
     starting_number: int = 1
     sort_order: str = "ASC"
     day_not_night: bool = None
-    row: int = "",
+    row: int = ""
     path: int = ""
 
     def json(self) -> dict:
