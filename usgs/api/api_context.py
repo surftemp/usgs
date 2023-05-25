@@ -305,7 +305,8 @@ class API_Context:
                 "max": max_cloud_cover
             }
 
-        if lower_left and upper_right:
+        if lower_left.latitude is not None and lower_left.longitude is not None \
+                and upper_right.latitude is not None and upper_right.longitude is not None:
             params["sceneFilter"]["spatialFilter"] = api.SpatialFilterMBR(
                 lower_left,
                 upper_right
@@ -325,7 +326,7 @@ class API_Context:
 
         metadata_filters = []
         if day_not_night is not None:
-            filter_id = metadata_filter_ids.get(dataset_name,{}).get("day_or_night","")
+            filter_id = metadata_filter_ids.get(dataset_name,{}).get("day_not_night","")
             if filter_id:
                 metadata_filters.append({
                     "filterId": filter_id,
