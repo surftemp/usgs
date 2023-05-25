@@ -202,13 +202,22 @@ Scenes are finally downloaded with the `download` command.
 
 - If cloud cover arguments are specified, we check that these are supported by the dataset.
 - User is asked if they wish to include dataset-specific additional criteria.
-- specify the min/max lat,lon coordinates of the bounding box
+- specify the min/max lat,lon coordinates of the bounding box.  For LANDSAT, an alternative is to specify row and path filters (see dataset specific filters, below)
 
 ```
 > usgs search-create LANDSAT_8_C1 my_search.json --lat-min -20.91 --lon-min 150.83 --lat-max -20.68 --lon-max 151.16  --start-date 2015-01-01 --end-date 2019-01-01 --max-cloud-cover 10
 WARNING: this dataset does not support the min and max cloud cover options. These may be available as additional criteria.
 Would you like to set any dataset-specific additional criteria? n
 ```
+
+The following dataset specific filters are supported:
+
+option          | description
+--------------- | ---------------------------------------------------------------------- 
+`--day-only`    | include only descending/day scenes (LANDSAT_OT_C2_L1 only) 
+ `--night-only` | include only ascending/night scenes (LANDSAT_OT_C2_L1 only) 
+ `--path`       | include scenes from the specified path only (LANDSAT_OT_C2_L1/L2 only) 
+ `--row`        | include scenes from the specified row only (LANDSAT_OT_C2_L1/L2 only) 
 
 #### 2. Run the saved search query
 
