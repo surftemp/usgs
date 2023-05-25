@@ -340,24 +340,20 @@ class API_Context:
             filter_id = metadata_filter_ids.get(dataset_name,{}).get("row","")
             if filter_id:
                 metadata_filters.append({
-                    {
-                        "filterId": filter_id,
-                        "filterType": "between",
-                        "firstValue": row,
-                        "secondValue": row
-                    },
+                    "filterId": filter_id,
+                    "filterType": "between",
+                    "firstValue": row,
+                    "secondValue": row
                 })
 
         if path is not None:
             filter_id = metadata_filter_ids.get(dataset_name,{}).get("path","")
             if filter_id:
                 metadata_filters.append({
-                    {
-                        "filterId": filter_id,
-                        "filterType": "between",
-                        "firstValue": path,
-                        "secondValue": path
-                    },
+                    "filterId": filter_id,
+                    "filterType": "between",
+                    "firstValue": path,
+                    "secondValue": path
                 })
 
         if len(metadata_filters) == 1:
