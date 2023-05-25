@@ -337,7 +337,7 @@ class API_Context:
                 print(f"Warning: DAY/NIGHT selection not supported for dataset {dataset_name}")
 
         if row is not None:
-            filter_id = metadata_filters.get(dataset_name,{}).get("row","")
+            filter_id = metadata_filter_ids.get(dataset_name,{}).get("row","")
             if filter_id:
                 metadata_filters.append({
                     {
@@ -349,7 +349,7 @@ class API_Context:
                 })
 
         if path is not None:
-            filter_id = metadata_filters.get(dataset_name,{}).get("path","")
+            filter_id = metadata_filter_ids.get(dataset_name,{}).get("path","")
             if filter_id:
                 metadata_filters.append({
                     {
