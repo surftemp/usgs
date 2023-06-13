@@ -7,7 +7,6 @@ import time
 from ..datastore.datastore import Datastore
 from ..api import api
 from ..api.api_context import API_Context
-from ..download.download_gcp import GCPStorage
 from ..download.download_usgs import DownloadUSGS
 from ..download.dataset_info import AUTH
 from ..api.search_criteria import Search_Criteria
@@ -314,6 +313,11 @@ def Download(**kwargs):
     suffix_filter = kwargs.get("suffix_filter")
     prune_suffixes = kwargs.get("prune_suffixes").split(",")
     prune_suffixes = list(map(lambda suffix: suffix.strip(), prune_suffixes))
+    download_names = kwargs.get("download_names")
+    if download_names is None:
+        download_names = []
+    else:
+        download_names = download_names.split(",")
 
     scene = kwargs.get("scene")
     if scene:
@@ -391,12 +395,10 @@ def Download(**kwargs):
                     if meta is None:
                         print("WARNING - failed to get scene-metadata prior to download")
 
-                    if product_id is None:
-                        s = DownloadUSGS(context, scene.catalog, scene.dataset, scene.id, suffix_filter=suffix_filter)
-                        downloaded_files = s.download()
-                    else:
-                        s = GCPStorage(scene.catalog, scene.dataset, scene.id, product_id, suffix_filter=suffix_filter)
-                        downloaded_files = s.download()
+
+                    s = DownloadUSGS(context, scene.catalog, scene.dataset, scene.id, suffix_filter=suffix_filter, download_names=download_names)
+                    downloaded_files = s.download()
+
                 except Exception as ex:
                     print("ERROR - failed to download: %s (%s) with %d retries left"%(scene.id,str(ex),retry_count))
                     if retry_count > 0:
