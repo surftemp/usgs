@@ -130,11 +130,12 @@ if __name__ == '__main__':
     suffixes = args.file_suffixes
     if suffixes is None or len(suffixes) == 0:
         suffixes = default_file_suffixes
+    print(suffixes)
 
     def include_file(displayId):
         name = displayId.lower()
         for ending in suffixes:
-            if name.lower().endswith(ending):
+            if name.lower().endswith(ending.lower()):
                 return True
         return False
 
@@ -185,9 +186,9 @@ if __name__ == '__main__':
         "datasetName": datasetName
     }
 
-    # print("Getting product download options...\n")
+    print("Getting product download options...\n")
     products = sendRequest(serviceUrl + "download-options", payload, apiKey)
-    # print("Got product download options\n")
+    print("Got product download options\n")
 
     # Select products
     downloads = []
@@ -201,14 +202,18 @@ if __name__ == '__main__':
                         downloads.append(
                             {"entityId": secondaryDownload["entityId"], "productId": secondaryDownload["id"]})
 
+    if len(downloads) == 0:
+        print("No downloads")
+        sys.exit(0)
+
     payload = {
         "downloads": downloads,
         "label": label
     }
 
-    # print(f"Sending download request ...\n")
+    print(f"Sending download request ...\n")
     results = sendRequest(serviceUrl + "download-request", payload, apiKey)
-    # print(f"Done sending download request\n")
+    print(f"Done sending download request\n")
 
     # Attempt the download URLs
     for result in results['availableDownloads']:
