@@ -98,7 +98,7 @@ def downloadFile(url, to_path):
         print(f"Downloaded {filename}")
         sema.release()
     except Exception as e:
-        print(f"Failed to download from {url}. Will try to re-download after a {retry_delay} second display.")
+        print(f"Failed to download from {url}: {str(e)}. Will try to re-download after a {retry_delay} second display.")
         sema.release()
         time.sleep(retry_delay)
         runDownload(threads, url, to_path)
@@ -126,6 +126,8 @@ if __name__ == '__main__':
     password = args.password
     scenefile = args.filename
     output_folder = args.output_folder
+
+    os.makedirs(output_folder, exist_ok=True)
 
     suffixes = args.file_suffixes
     if suffixes is None or len(suffixes) == 0:
