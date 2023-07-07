@@ -109,6 +109,8 @@ def runDownload(threads, url, to_path):
     threads.append(thread)
     thread.start()
 
+entity_id_cache = {}
+
 if __name__ == '__main__':
     # User input
     parser = argparse.ArgumentParser()
@@ -118,7 +120,8 @@ if __name__ == '__main__':
     parser.add_argument('-f', '--filename', required=True, help='download entityId list')
     parser.add_argument('-o', '--output-folder', default=".", help='output folder path')
     parser.add_argument('-s', '--file-suffixes', nargs="+", help='output folder path')
-    parser.add_argument('-t', '--type-of-id', choices=('entity','display'), default='display', help='output folder path')
+    parser.add_argument('-e', '--entity-id-path', type=str, help='read/write an entity id cache at this path', default=None)
+    parser.add_argument('-l', '--limit', type=int, help='limit to this many items', default=None)
 
     args = parser.parse_args()
 
@@ -126,13 +129,24 @@ if __name__ == '__main__':
     password = args.password
     scenefile = args.filename
     output_folder = args.output_folder
+    entity_id_path = args.entity_id_path
+    limit = args.limit
+
+    entity_id_cache = {}
+
+    entity_id_cache_file = None
+    if entity_id_path:
+        entity_id_cache_file = open(entity_id_path,"a+")
+        entity_id_cache_file.seek(0)
+        for line in entity_id_cache_file.readlines():
+            ids = line.strip().split(",")
+            entity_id_cache[ids[0]] = ids[1]
 
     os.makedirs(output_folder, exist_ok=True)
 
     suffixes = args.file_suffixes
     if suffixes is None or len(suffixes) == 0:
         suffixes = default_file_suffixes
-    print(suffixes)
 
     def include_file(displayId):
         name = displayId.lower()
@@ -153,7 +167,9 @@ if __name__ == '__main__':
     apiKey = sendRequest(serviceUrl + "login", payload)
     print("API Key: " + apiKey + "\n")
 
-    entityIds = []
+    entity_id_cache_extensions = {}
+
+    download_ids = []
 
     with open(scenefile, "r") as f:
         lines = f.readlines()
@@ -164,24 +180,46 @@ if __name__ == '__main__':
     print(f"Dataset name: {datasetName}")
 
     lines.pop(0)
+    ctr = 0
     for line in lines:
-        line_id = line.strip()
-        if args.type_of_id == "display":
+        display_id = line.strip()
+        download_required = False
+        for suffix in suffixes:
+            path = os.path.join(output_folder,display_id+"_"+suffix)
+            if not os.path.exists(path):
+                download_required = True
+
+        if not download_required:
+            print(f"Files already downloaded for {display_id}")
+            continue
+
+        ctr += 1
+        if limit is None or ctr <= limit:
+            if display_id in entity_id_cache:
+                download_ids.append((display_id,entity_id_cache[display_id]))
+                continue
+
             payload = {
                 "datasetName":datasetName,
-                "entityId":line_id,
+                "entityId":display_id,
                 "idType": "displayId",
                 "metadataType": "summary"
             }
             results = sendRequest(serviceUrl + "scene-metadata", payload, apiKey)
             if results:
-                entityIds.append(results["entityId"])
+                entity_id = results["entityId"]
+                download_ids.append((display_id,entity_id))
+                if entity_id_cache_file is not None:
+                    entity_id_cache_file.write(f"{display_id},{entity_id}\n")
+                    entity_id_cache_file.flush()
             else:
-                print(f"WARNING No metadata found for scene {line_id}, ignoring")
-        else:
-            entityIds.append(line_id)
+                print(f"WARNING No metadata found for scene {display_id}, ignoring")
 
+    if entity_id_cache_file is not None:
+        entity_id_cache_file.close()
+        entity_id_cache_file = None
 
+    entityIds = [download_id[1] for download_id in download_ids]
 
     payload = {
         "entityIds": entityIds,
