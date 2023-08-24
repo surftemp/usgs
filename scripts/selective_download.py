@@ -115,11 +115,11 @@ if __name__ == '__main__':
     # User input
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('-u', '--username', required=True, help='Username')
-    parser.add_argument('-p', '--password', required=True, help='Password')
+    parser.add_argument('-u', '--username', default=os.getenv("USGS_USERNAME"), help='Username')
+    parser.add_argument('-p', '--password', default=os.getenv("USGS_PASSWORD"), help='Password')
     parser.add_argument('-f', '--filename', required=True, help='download entityId list')
     parser.add_argument('-o', '--output-folder', default=".", help='output folder path')
-    parser.add_argument('-s', '--file-suffixes', nargs="+", help='output folder path')
+    parser.add_argument('-s', '--file-suffixes', nargs="+", help='specify file suffix to download')
     parser.add_argument('-e', '--entity-id-path', type=str, help='read/write an entity id cache at this path', default=None)
     parser.add_argument('-l', '--limit', type=int, help='limit to this many items', default=None)
 
@@ -169,7 +169,7 @@ if __name__ == '__main__':
 
     entity_id_cache_extensions = {}
 
-    download_ids = []
+    entity_ids = []
 
     with open(scenefile, "r") as f:
         lines = f.readlines()
@@ -195,8 +195,12 @@ if __name__ == '__main__':
 
         ctr += 1
         if limit is None or ctr <= limit:
+            if display_id.find("_") == -1:
+                entity_ids.append(display_id)
+                continue
+
             if display_id in entity_id_cache:
-                download_ids.append((display_id,entity_id_cache[display_id]))
+                entity_ids.append(entity_id_cache[display_id])
                 continue
 
             payload = {
@@ -208,7 +212,7 @@ if __name__ == '__main__':
             results = sendRequest(serviceUrl + "scene-metadata", payload, apiKey)
             if results:
                 entity_id = results["entityId"]
-                download_ids.append((display_id,entity_id))
+                entity_ids.append(entity_id)
                 if entity_id_cache_file is not None:
                     entity_id_cache_file.write(f"{display_id},{entity_id}\n")
                     entity_id_cache_file.flush()
@@ -219,10 +223,9 @@ if __name__ == '__main__':
         entity_id_cache_file.close()
         entity_id_cache_file = None
 
-    entityIds = [download_id[1] for download_id in download_ids]
 
     payload = {
-        "entityIds": entityIds,
+        "entityIds": entity_ids,
         "datasetName": datasetName
     }
 
