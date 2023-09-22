@@ -214,12 +214,6 @@ def __main__(args=None):
         default=""
     )
     parser_Download.add_argument(
-        "--download-names",
-        type=str,
-        help="comma separated list of individual download names, eg SZA.TIF",
-        default=None
-    )
-    parser_Download.add_argument(
         "--ignore-cache",
         help="download even if some file(s) for this scene are already in the cache",
         action='store_true'

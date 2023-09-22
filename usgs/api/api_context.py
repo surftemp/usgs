@@ -193,23 +193,18 @@ class API_Context:
         return j["data"]
 
     @_login
-    def DownloadOptions(self, dataset_name: str, scene_id: str, support_download_names:bool) -> str:
+    def DownloadOptions(self, dataset_name: str, scene_id: str) -> str:
         """
         This request is used to return the download options for a specified scene within a specified dataset.
         """
-        data_params = {
-            "datasetName": dataset_name,
-            "entityIds": scene_id
-        }
-        if support_download_names:
-            data_params["includeSecondaryFileGroups"] = True
-
         j = api.JSON_Request(
             "download-options",
-            data_params=data_params,
+            data_params={
+                "datasetName": dataset_name,
+                "entityIds": scene_id
+            },
             headers={"X-Auth-Token": self.api_key, 'User-Agent': 'USGS Client Tool 1.0'}
         )
-        print(json.dumps(j))
 
         return j["data"]
 
@@ -241,6 +236,8 @@ class API_Context:
             },
             headers={"X-Auth-Token": self.api_key, 'User-Agent': 'USGS Client Tool 1.0'}
         )
+
+        print(json.dumps(j))
 
         return j["data"]
 
