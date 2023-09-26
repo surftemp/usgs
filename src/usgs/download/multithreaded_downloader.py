@@ -1,0 +1,296 @@
+# Based on:
+
+# ========================================================================================================================
+#  USGS/EROS Inventory Service Example
+#  Description: Download Landsat Collection 2 files
+#  Usage: python download_sample.py -u username -p password -f fileType -g fileGroups
+#         optional argument f refers to file type including 'bundle' or 'band'
+#         optional argument g refers to file group ids that concatenated with comma
+#         example: python download_landsat_c2.py -u username -p password -f band_group -g ls_c2l2_st_band,ls_c2l2_st_band
+#  Note: This script can either read scenes from a text file (details can be found at line 28) or send
+#        scene-search request to retrieve scenes (will need to comment out line 128-143 and uncomment line
+#        145-160 and update the search filter at line 147-162)
+# =========================================================================================================================
+
+import json
+import requests
+import sys
+import time
+import argparse
+import re
+import threading
+import datetime
+import os
+
+
+class MultiThreadedDownloader:
+
+    def __init__(self, maxthreads=5, retry_delay=30):
+
+        self.maxthreads = maxthreads  # Threads count for downloads
+        self.sema = threading.Semaphore(value=maxthreads)
+        self.threads = []
+        self.retry_delay = retry_delay
+
+    # Send http request
+    def sendRequest(self, url, data, apiKey=None, exitIfNoResponse=True):
+        json_data = json.dumps(data)
+        print(url)
+        print(json_data)
+
+        if apiKey == None:
+            response = requests.post(url, json_data)
+        else:
+            headers = {'X-Auth-Token': apiKey}
+            response = requests.post(url, json_data, headers=headers)
+
+        try:
+            httpStatusCode = response.status_code
+            if response == None:
+                print("No output from service")
+                if exitIfNoResponse:
+                    sys.exit()
+                else:
+                    return False
+            output = json.loads(response.text)
+            if output['errorCode'] != None:
+                print(output['errorCode'], "- ", output['errorMessage'])
+                if exitIfNoResponse:
+                    sys.exit()
+                else:
+                    return False
+            if httpStatusCode == 404:
+                print("404 Not Found")
+                if exitIfNoResponse:
+                    sys.exit()
+                else:
+                    return False
+            elif httpStatusCode == 401:
+                print("401 Unauthorized")
+                if exitIfNoResponse:
+                    sys.exit()
+                else:
+                    return False
+            elif httpStatusCode == 400:
+                print("Error Code", httpStatusCode)
+                if exitIfNoResponse:
+                    sys.exit()
+                else:
+                    return False
+        except Exception as e:
+            response.close()
+            print(e)
+            if exitIfNoResponse:
+                sys.exit()
+            else:
+                return False
+        response.close()
+        return output['data']
+
+    def downloadFile(self, url, to_path):
+        self.sema.acquire()
+        try:
+            response = requests.get(url, stream=True)
+            disposition = response.headers['content-disposition']
+            filename = re.findall("filename=(.+)", disposition)[0].strip("\"")
+            print(f"Downloading {filename} ...")
+            with open(os.path.join(to_path, filename), 'wb') as f:
+                f.write(response.content)
+            print(f"Downloaded {filename}")
+            self.sema.release()
+        except Exception as e:
+            print(
+                f"Failed to download from {url}: {str(e)}. Will try to re-download after a {self.retry_delay} second display.")
+            self.sema.release()
+            time.sleep(self.retry_delay)
+            self.runDownload(url, to_path)
+
+    def runDownload(self, url, to_path):
+        thread = threading.Thread(target=lambda *dargs: self.downloadFile(*dargs), args=(url, to_path))
+        self.threads.append(thread)
+        thread.start()
+
+    def fetch(self, username, password, scenefile, output_folder, entity_id_path, limit, suffixes):
+
+        entity_id_cache = {}
+
+        entity_id_cache_file = None
+        if entity_id_path:
+            entity_id_cache_file = open(entity_id_path, "a+")
+            entity_id_cache_file.seek(0)
+            for line in entity_id_cache_file.readlines():
+                ids = line.strip().split(",")
+                entity_id_cache[ids[0]] = ids[1]
+
+        os.makedirs(output_folder, exist_ok=True)
+
+        def include_file(displayId):
+            name = displayId.lower()
+            for ending in suffixes:
+                if name.lower().endswith(ending.lower()):
+                    return True
+            return False
+
+        label = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+
+        print("\nRunning Scripts...\n")
+        startTime = time.time()
+
+        serviceUrl = "https://m2m.cr.usgs.gov/api/api/json/stable/"
+
+        # Login
+        payload = {'username': username, 'password': password}
+        apiKey = self.sendRequest(serviceUrl + "login", payload)
+        print("API Key: " + apiKey + "\n")
+
+        entity_id_cache_extensions = {}
+
+        entity_ids = []
+
+        with open(scenefile, "r") as f:
+            lines = f.readlines()
+
+        datasetName = lines[0].strip()
+
+        print("Scenes details:")
+        print(f"Dataset name: {datasetName}")
+
+        lines.pop(0)
+        ctr = 0
+        for line in lines:
+            display_id = line.strip()
+            download_required = False
+            for suffix in suffixes:
+                path = os.path.join(output_folder, display_id + "_" + suffix)
+                if not os.path.exists(path):
+                    download_required = True
+
+            if not download_required:
+                print(f"Files already downloaded for {display_id}")
+                continue
+
+            ctr += 1
+            if limit is None or ctr <= limit:
+                if display_id.find("_") == -1:
+                    entity_ids.append(display_id)
+                    continue
+
+                if display_id in entity_id_cache:
+                    entity_ids.append(entity_id_cache[display_id])
+                    continue
+
+                payload = {
+                    "datasetName": datasetName,
+                    "entityId": display_id,
+                    "idType": "displayId",
+                    "metadataType": "summary"
+                }
+                results = self.sendRequest(serviceUrl + "scene-metadata", payload, apiKey)
+                if results:
+                    entity_id = results["entityId"]
+                    entity_ids.append(entity_id)
+                    if entity_id_cache_file is not None:
+                        entity_id_cache_file.write(f"{display_id},{entity_id}\n")
+                        entity_id_cache_file.flush()
+                else:
+                    print(f"WARNING No metadata found for scene {display_id}, ignoring")
+
+        if entity_id_cache_file is not None:
+            entity_id_cache_file.close()
+            entity_id_cache_file = None
+
+        payload = {
+            "entityIds": entity_ids,
+            "datasetName": datasetName
+        }
+
+        print("Getting product download options...\n")
+        products = self.sendRequest(serviceUrl + "download-options", payload, apiKey)
+        print("Got product download options\n")
+
+        # Select products
+        downloads = []
+
+        # Select band files
+        for product in products:
+            if product["secondaryDownloads"] is not None and len(product["secondaryDownloads"]) > 0:
+                for secondaryDownload in product["secondaryDownloads"]:
+                    if secondaryDownload["bulkAvailable"]:
+                        if include_file(secondaryDownload["displayId"]):
+                            downloads.append(
+                                {"entityId": secondaryDownload["entityId"], "productId": secondaryDownload["id"]})
+
+        if len(downloads) == 0:
+            print("No downloads")
+            sys.exit(0)
+
+        payload = {
+            "downloads": downloads,
+            "label": label
+        }
+
+        print(f"Sending download request ...\n")
+        results = self.sendRequest(serviceUrl + "download-request", payload, apiKey)
+        print(f"Done sending download request\n")
+
+        # Attempt the download URLs
+        for result in results['availableDownloads']:
+            # print(f"Get download url: {result['url']}\n")
+            self.runDownload(result['url'], output_folder)
+
+        preparingDownloadCount = len(results['preparingDownloads'])
+        preparingDownloadIds = []
+        if preparingDownloadCount > 0:
+            for result in results['preparingDownloads']:
+                preparingDownloadIds.append(result['downloadId'])
+
+            payload = {"label": label}
+
+            results = self.sendRequest(serviceUrl + "download-retrieve", payload, apiKey, False)
+            if results != False:
+                for result in results['available']:
+                    if result['downloadId'] in preparingDownloadIds:
+                        preparingDownloadIds.remove(result['downloadId'])
+                        print(f"Get download url: {result['url']}\n")
+                        self.runDownload(result['url'], output_folder)
+
+                for result in results['requested']:
+                    if result['downloadId'] in preparingDownloadIds:
+                        preparingDownloadIds.remove(result['downloadId'])
+                        print(f"Get download url: {result['url']}\n")
+                        self.runDownload(result['url'], output_folder)
+
+            # Didn't get all download URLs, retrieve again after 30 seconds
+            while len(preparingDownloadIds) > 0:
+                print(
+                    f"{len(preparingDownloadIds)} downloads are not available yet. Waiting for 30s to retrieve again\n")
+                time.sleep(30)
+                results = self.sendRequest(serviceUrl + "download-retrieve", payload, apiKey, False)
+                if results != False:
+                    for result in results['available']:
+                        if result['downloadId'] in preparingDownloadIds:
+                            preparingDownloadIds.remove(result['downloadId'])
+                            print(f"Get download url: {result['url']}\n")
+                            self.runDownload(result['url'], output_folder)
+
+        print("\nGot download urls for all downloads\n")
+
+        # Logout
+        endpoint = "logout"
+        if self.sendRequest(serviceUrl + endpoint, None, apiKey) == None:
+            print("Logged Out\n")
+        else:
+            print("Logout Failed\n")
+
+        print("Downloading files... Please do not close the program\n")
+        for thread in self.threads:
+            thread.join()
+
+        print("Complete Downloading")
+
+        executionTime = round((time.time() - startTime), 2)
+        print(f'Total time: {executionTime} seconds')
+
+
+
+
