@@ -22,7 +22,6 @@ import threading
 import datetime
 import os
 
-
 class MultiThreadedDownloader:
 
     def __init__(self, maxthreads=5, retry_delay=30):
@@ -112,6 +111,11 @@ class MultiThreadedDownloader:
 
     def fetch(self, username, password, scenefile, output_folder, entity_id_path, limit, suffixes):
 
+        with open(scenefile, "r") as f:
+            lines = f.readlines()
+
+        datasetName = lines[0].strip()
+
         entity_id_cache = {}
 
         entity_id_cache_file = None
@@ -125,6 +129,9 @@ class MultiThreadedDownloader:
         os.makedirs(output_folder, exist_ok=True)
 
         def include_file(displayId):
+            if os.path.exists(os.path.join(output_folder,displayId)):
+                print("already downloaded: "+displayId)
+                return False
             name = displayId.lower()
             for ending in suffixes:
                 if name.lower().endswith(ending.lower()):
@@ -146,11 +153,6 @@ class MultiThreadedDownloader:
         entity_id_cache_extensions = {}
 
         entity_ids = []
-
-        with open(scenefile, "r") as f:
-            lines = f.readlines()
-
-        datasetName = lines[0].strip()
 
         print("Scenes details:")
         print(f"Dataset name: {datasetName}")
@@ -235,7 +237,6 @@ class MultiThreadedDownloader:
 
         # Attempt the download URLs
         for result in results['availableDownloads']:
-            # print(f"Get download url: {result['url']}\n")
             self.runDownload(result['url'], output_folder)
 
         preparingDownloadCount = len(results['preparingDownloads'])
@@ -291,6 +292,25 @@ class MultiThreadedDownloader:
         executionTime = round((time.time() - startTime), 2)
         print(f'Total time: {executionTime} seconds')
 
+def main():
+    parser = argparse.ArgumentParser()
 
+    parser.add_argument('-u', '--username', default=os.getenv("USGS_USERNAME"), help='Username')
+    parser.add_argument('-p', '--password', default=os.getenv("USGS_PASSWORD"), help='Password')
+    parser.add_argument('-f', '--filename', required=True, help='download entityId list')
+    parser.add_argument('-o', '--output-folder', default=".", help='output folder path')
+    parser.add_argument('-s', '--file-suffixes', nargs="+", help='specify file suffix to download')
+    parser.add_argument('-e', '--entity-id-path', type=str, help='read/write an entity id cache at this path',
+                        default=None)
+    parser.add_argument('-l', '--limit', type=int, help='limit to this many items', default=None)
+
+    args = parser.parse_args()
+
+    dl = MultiThreadedDownloader()
+    dl.fetch(args.username, args.password, args.filename, args.output_folder, args.entity_id_path, args.limit,
+             args.file_suffixes)
+
+if __name__ == '__main__':
+    main()
 
 
