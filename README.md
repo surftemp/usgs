@@ -240,18 +240,7 @@ To print metadata for a scene use the `scene-metadata` command, passing the data
 }
 ```
 
-##### Piping search to csv
+#### 3. Download
 
-To download multiple scenes it is possible to supply a comma separated values (CSV)
-file as input to `download`:
-
-```
-> usgs search-run my_search.json > my_results.txt
-> usgs download --csv my_results.txt
-```
-
-## Restrictions
-
-The API is rate restricted to 1 concurrent request.
-Incomplete requests incur a 15 min timeout.
+Use the usgs_download command to download scenes, documentation coming soon
 
