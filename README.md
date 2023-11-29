@@ -76,7 +76,7 @@ Use the following commands to update the usgs tool when the source code in githu
 conda activate usgs_env OR . ~/usgs_env/bin/activate
 git pull
 pip uninstall usgs
-python setup.py install
+pip install .
 ```
 
 ## Scenes
@@ -168,14 +168,9 @@ Commands are invoked at the CLI with `usgs COMMAND ...`.
 
 Command | Description
 --- | ---
-~~status~~* | ~~Retrieve api server status~~
 `search-create` | Create a saved search query which may be executed with `search-run`
 `search-run` | Execute a search query
-`download` | Download api scenes
 `scene-metadata` | Returns scene metadata
-~~dataset-search~~* | ~~Search for datasets by name and spatial / temporal range~~
-~~dataset-fields~~* | ~~Return additional criteria fields for a dataset~~
-~~grid2ll~~* | ~~Convert grid locations to a lat/lng center point or polygon~~
 
 *commands not currently converted to use new USGS APIs
 
@@ -244,53 +239,6 @@ To print metadata for a scene use the `scene-metadata` command, passing the data
   ...
 }
 ```
-
-#### 3. Download a scene
-
-The `download` command requires either the `USGS_DATADIR` environment variable
-or the `--data-dir` command line argument to specify where to save
-downloads (`<data-dir>/catalog/dataset/id/`).
-
-```
-> usgs download --scene EE LANDSAT_8_C1 LC80920742019283LGN00
-Scene(catalog='EE', dataset='LANDSAT_8_C1', id='LC80920742019251LGN00')
-INFO:usgs.download.gcp:Downloading: LC08_L1TP_092074_20190908_20190917_01_T1_B1.TIF
-INFO:usgs.download.gcp:Downloading: LC08_L1TP_092074_20190908_20190917_01_T1_B2.TIF
-INFO:usgs.download.gcp:Downloading: LC08_L1TP_092074_20190908_20190917_01_T1_B3.TIF
-INFO:usgs.download.gcp:Downloading: LC08_L1TP_092074_20190908_20190917_01_T1_B4.TIF
-INFO:usgs.download.gcp:Downloading: LC08_L1TP_092074_20190908_20190917_01_T1_B5.TIF
-INFO:usgs.download.gcp:Downloading: LC08_L1TP_092074_20190908_20190917_01_T1_B6.TIF
-INFO:usgs.download.gcp:Downloading: LC08_L1TP_092074_20190908_20190917_01_T1_B7.TIF
-INFO:usgs.download.gcp:Downloading: LC08_L1TP_092074_20190908_20190917_01_T1_B8.TIF
-INFO:usgs.download.gcp:Downloading: LC08_L1TP_092074_20190908_20190917_01_T1_B9.TIF
-INFO:usgs.download.gcp:Downloading: LC08_L1TP_092074_20190908_20190917_01_T1_B10.TIF
-INFO:usgs.download.gcp:Downloading: LC08_L1TP_092074_20190908_20190917_01_T1_B11.TIF
-INFO:usgs.download.gcp:Downloading: LC08_L1TP_092074_20190908_20190917_01_T1_BQA.TIF
-INFO:usgs.download.gcp:Downloading: LC08_L1TP_092074_20190908_20190917_01_T1_MTL.txt
-Saved to /tmp/EE/LANDSAT_8_C1/LC80920742019251LGN00
-```
-
-The download option will not attempt to download a scene that has been previously downloaded to the data directory.  
-
-Use the `--ignore-cache` option to override the cached entry and always re-download the files.
-
-Depending on the dataset, a scene may comprise multiple files.  For example a large .h5 file and a small .xml file containing metadata.
-
-In this case, to download just the metadata file, use the `--suffix-filter` option to select only .xml files as follows:
-
-```
-> usgs download --scene EE ECOSTRESS_ECO1BRAD 2492617597 --suffix-filter xml --ignore-cache
-INFO:usgs.download.download_usgs:Skipping: ECOSTRESS_L1B_RAD_18397_033_20211003T222511_0601_01.h5 with no match to filter-suffix xml
-INFO:usgs.download.download:Download https://e4ftl01.cr.usgs.gov/ECOA/ECOSTRESS/ECO1BRAD.001/2021.10.03/ECOSTRESS_L1B_RAD_18397_033_20211003T222511_0601_01.h5.xml
-INFO:usgs.download.download:Destination on disk: /var/folders/5k/mnb_s_l11fv6n9kl8dstbf7r0000gp/T/tmp3y9kyi_1/EE/ECOSTRESS_ECO1BRAD/2492617597/ECOSTRESS_L1B_RAD_18397_033_20211003T222511_0601_01.h5.xml
-INFO:usgs.download.download:239% (8192/3424 bytes) @ 3.53 MB/s
-INFO:usgs.download.download:done
-```
-
-Landsat8 Level1 data will be downloaded from Google Cloud.  Other datasets will be downloaded from the USGS site, which may require "Machine" access.  You can request this access by logging in to https://ers.cr.usgs.gov/profile/access
-
-![image](https://user-images.githubusercontent.com/58978249/152136005-5d8ca56e-4d6d-405e-9cb9-430428b1227d.png)
-
 
 ##### Piping search to csv
 
