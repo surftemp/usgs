@@ -61,7 +61,7 @@ This library may alternately be installed via Pip into an existing python 3.6 en
 2. Create environment: `python3 -m venv ~/usgs_env`
 3. Activate environment: `. ~/usgs_env/bin/activate`   
 4. Install requirements `pip install -r requirements.txt`
-5. Install this package: `python setup.py install`
+5. Install this package: `python install .`
 
 ### Updates
 
