@@ -13,6 +13,8 @@
 # =========================================================================================================================
 
 import json
+import shutil
+
 import requests
 import sys
 import time
@@ -22,14 +24,18 @@ import threading
 import datetime
 import os
 
+from usgs.utils.file_utils import FileUtils
+
 class MultiThreadedDownloader:
 
-    def __init__(self, maxthreads=5, retry_delay=30):
+    def __init__(self, file_cache_index_path=None, maxthreads=5, retry_delay=30):
 
         self.maxthreads = maxthreads  # Threads count for downloads
         self.sema = threading.Semaphore(value=maxthreads)
         self.threads = []
         self.retry_delay = retry_delay
+
+        self.file_cache = FileUtils(file_cache_index_path) if file_cache_index_path else None
 
     # Send http request
     def sendRequest(self, url, data, apiKey=None, exitIfNoResponse=True):
@@ -109,34 +115,42 @@ class MultiThreadedDownloader:
         self.threads.append(thread)
         thread.start()
 
-    def fetch(self, username, password, scenefile, output_folder, entity_id_path, limit, suffixes):
+    def fetch(self, username, password, scenefile, output_folder, limit, suffixes):
 
         with open(scenefile, "r") as f:
             lines = f.readlines()
 
         datasetName = lines[0].strip()
 
-        entity_id_cache = {}
-
-        entity_id_cache_file = None
-        if entity_id_path:
-            entity_id_cache_file = open(entity_id_path, "a+")
-            entity_id_cache_file.seek(0)
-            for line in entity_id_cache_file.readlines():
-                ids = line.strip().split(",")
-                entity_id_cache[ids[0]] = ids[1]
-
         os.makedirs(output_folder, exist_ok=True)
 
         def include_file(displayId):
-            if os.path.exists(os.path.join(output_folder,displayId)):
-                print("already downloaded: "+displayId)
-                return False
+            required_suffix = False
             name = displayId.lower()
             for ending in suffixes:
                 if name.lower().endswith(ending.lower()):
-                    return True
-            return False
+                    required_suffix = True
+
+            if not required_suffix:
+                return False
+
+            filename = displayId
+            path = os.path.join(output_folder, filename)
+
+            if os.path.exists(os.path.join(output_folder,displayId)):
+                print("already downloaded: "+displayId)
+                return False
+
+            if not os.path.exists(path):
+                if self.file_cache is not None:
+                    cached_path = self.file_cache.get_path(filename)
+                    if cached_path:
+                        print("copying file from cache: " + cached_path)
+                        shutil.copyfile(cached_path, path)
+                        return False
+
+
+            return True
 
         label = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 
@@ -150,8 +164,6 @@ class MultiThreadedDownloader:
         apiKey = self.sendRequest(serviceUrl + "login", payload)
         print("API Key: " + apiKey + "\n")
 
-        entity_id_cache_extensions = {}
-
         entity_ids = []
 
         print("Scenes details:")
@@ -160,46 +172,11 @@ class MultiThreadedDownloader:
         lines.pop(0)
         ctr = 0
         for line in lines:
-            display_id = line.strip()
-            download_required = False
-            for suffix in suffixes:
-                path = os.path.join(output_folder, display_id + "_" + suffix)
-                if not os.path.exists(path):
-                    download_required = True
-
-            if not download_required:
-                print(f"Files already downloaded for {display_id}")
-                continue
+            entity_id = line.strip()
 
             ctr += 1
             if limit is None or ctr <= limit:
-                if display_id.find("_") == -1:
-                    entity_ids.append(display_id)
-                    continue
-
-                if display_id in entity_id_cache:
-                    entity_ids.append(entity_id_cache[display_id])
-                    continue
-
-                payload = {
-                    "datasetName": datasetName,
-                    "entityId": display_id,
-                    "idType": "displayId",
-                    "metadataType": "summary"
-                }
-                results = self.sendRequest(serviceUrl + "scene-metadata", payload, apiKey)
-                if results:
-                    entity_id = results["entityId"]
-                    entity_ids.append(entity_id)
-                    if entity_id_cache_file is not None:
-                        entity_id_cache_file.write(f"{display_id},{entity_id}\n")
-                        entity_id_cache_file.flush()
-                else:
-                    print(f"WARNING No metadata found for scene {display_id}, ignoring")
-
-        if entity_id_cache_file is not None:
-            entity_id_cache_file.close()
-            entity_id_cache_file = None
+                entity_ids.append(entity_id)
 
         payload = {
             "entityIds": entity_ids,
@@ -300,14 +277,14 @@ def main():
     parser.add_argument('-f', '--filename', required=True, help='download entityId list')
     parser.add_argument('-o', '--output-folder', default=".", help='output folder path')
     parser.add_argument('-s', '--file-suffixes', nargs="+", help='specify file suffix to download')
-    parser.add_argument('-e', '--entity-id-path', type=str, help='read/write an entity id cache at this path',
-                        default=None)
+    parser.add_argument('-c', '--file-cache-index', type=str,
+                        help='path to an key-value DBM index with filename->path cache lookup',default=None)
     parser.add_argument('-l', '--limit', type=int, help='limit to this many items', default=None)
 
     args = parser.parse_args()
 
-    dl = MultiThreadedDownloader()
-    dl.fetch(args.username, args.password, args.filename, args.output_folder, args.entity_id_path, args.limit,
+    dl = MultiThreadedDownloader(args.file_cache_index)
+    dl.fetch(args.username, args.password, args.filename, args.output_folder, args.limit,
              args.file_suffixes)
 
 if __name__ == '__main__':

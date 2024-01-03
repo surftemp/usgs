@@ -1,4 +1,5 @@
 import logging
+import logging
 import os
 import sys
 from argparse import ArgumentParser
@@ -197,39 +198,7 @@ def __main__(args=None):
 
     parser_Search_Run.set_defaults(func=cli_commands.Run_Saved_Search)
 
-    # Download
-    parser_Download: ArgumentParser = command_subparsers.add_parser(
-        "download",
-        description="Download api scenes. Specify an individual data product with --scene, or request multiple data products via CSV file --csv."
-    )
-    parser_Download.add_argument(
-        "--suffix-filter",
-        type=str,
-        default=""
-    )
-    parser_Download.add_argument(
-        "--prune-suffixes",
-        type=str,
-        help="comma separated list of suffixes to prune from downloaded files",
-        default=""
-    )
-    parser_Download.add_argument(
-        "--ignore-cache",
-        help="download even if some file(s) for this scene are already in the cache",
-        action='store_true'
-    )
-    parser_Download_Target = parser_Download.add_mutually_exclusive_group(
-        required=True)
-    parser_Download_Target.add_argument(
-        "--scene",
-        help="triple of \'catalog dataset id\'",
-        nargs=3
-    )
-    parser_Download_Target.add_argument(
-        "--csv",
-        help="comma separated value file of scenes to download"
-    )
-    parser_Download.set_defaults(func=cli_commands.Download)
+
 
     # SceneMetadata
     parser_SceneMetadata: ArgumentParser = command_subparsers.add_parser(
