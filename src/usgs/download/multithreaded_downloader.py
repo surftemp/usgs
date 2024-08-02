@@ -118,7 +118,7 @@ class MultiThreadedDownloader:
         self.threads.append(thread)
         thread.start()
 
-    def fetch(self, username, password, scenefile, download_folder, output_folder, limit, suffixes):
+    def fetch(self, username, password, scenefile, download_folder, output_folder, limit, suffixes, no_download=False):
 
         with open(scenefile, "r") as f:
             lines = f.readlines()
@@ -131,11 +131,12 @@ class MultiThreadedDownloader:
             os.makedirs(download_folder, exist_ok=True)
 
         def include_file(display_id):
-            required_suffix = False
+            required_suffix = False if suffixes else True
             filename = display_id
-            for ending in suffixes:
-                if filename.lower().endswith(ending.lower()):
-                    required_suffix = True
+            if suffixes:
+                for ending in suffixes:
+                    if filename.lower().endswith(ending.lower()):
+                        required_suffix = True
 
             if not required_suffix:
                 return False
@@ -161,7 +162,11 @@ class MultiThreadedDownloader:
                     os.symlink(cached_path, output_path)
                     return False
 
-            return True
+            if no_download:
+                print(f"{filename}: download required but not enabled")
+                return False
+
+            return True # this file needs to be downloaded
 
         label = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 
@@ -284,6 +289,7 @@ def main():
     parser.add_argument('-p', '--password', default=os.getenv("USGS_PASSWORD"), help='Password')
     parser.add_argument('-f', '--filename', required=True, help='download entityId list')
     parser.add_argument('-d', '--download-folder', default=None, help='download folder path')
+    parser.add_argument('-n', '--no-download', action="store_true", help='Do not download any new files')
     parser.add_argument('-o', '--output-folder', default=".", help='output folder path')
     parser.add_argument('-s', '--file-suffixes', nargs="+", help='specify file suffix to download')
     parser.add_argument('-c', '--file-cache-index', type=str,
@@ -295,7 +301,7 @@ def main():
     dl = MultiThreadedDownloader(args.file_cache_index)
     dl.fetch(args.username, args.password, args.filename,
              args.download_folder, args.output_folder, args.limit,
-             args.file_suffixes)
+             args.file_suffixes, args.no_download)
 
 if __name__ == '__main__':
     main()

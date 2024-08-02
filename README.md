@@ -105,6 +105,8 @@ Name | Catalog | Dataset
 Landsat 8 OLI/TIRS Collection 1 Level-1 | EE | LANDSAT_8_C1
 Landsat OLI/TIRS Collection 2 Level-1 (includes Landsat8/9)| EE | LANDSAT_OT_C2_L1
 Landsat OLI/TIRS Collection 2 Level-2 (includes Landsat8/9)| EE | LANDSAT_OT_C2_L2
+Landsat 7 ETM Collection 2 Level-1 | EE |  LANDSAT_ETM_C2_L1
+Landsat 7 ETM Collection 2 Level-2 | EE |  LANDSAT_ETM_C2_L2
 Ecostress        | EE | ECOSTRESS_ECO1BRAD
 
 This library was built with the above dataset targetted. 
