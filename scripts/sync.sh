@@ -3,15 +3,15 @@
 # copy relevant files to JASMIN
 
 rootfolder=`dirname $0`/..
-username=$1
-destfolder=$2
+hostname=$1
+username=$2
+destfolder=$3
 
-if [ -z ${username} ] || [ -z ${destfolder} ];
+if [ -z ${hostname} ] || [ -z ${username} ] || [ -z ${destfolder} ];
 then
-  echo provide the username and destination folder on JASMIN as arguments
+  echo provide the hostname username and destination folder on JASMIN as arguments
 else
-  rsync -avr --delete --exclude "*/__pycache__" $rootfolder/src $username@login2.jasmin.ac.uk:$destfolder/usgs
-  rsync -avr $rootfolder/pyproject.toml $username@login2.jasmin.ac.uk:$destfolder/usgs
-  rsync -avr $rootfolder/setup.cfg $username@login2.jasmin.ac.uk:$destfolder/usgs
-  rsync -avr $rootfolder/environment.yml $username@login2.jasmin.ac.uk:$destfolder/usgs
+  rsync -avr $rootfolder/src $username@$hostname:$destfolder/usgs
+  rsync -avr $rootfolder/pyproject.toml $username@$hostname:$destfolder/usgs
+  rsync -avr $rootfolder/setup.cfg $username@$hostname:$destfolder/usgs
 fi

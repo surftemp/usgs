@@ -27,53 +27,32 @@ Some datasets (eg ECOSTRESS) may also require an account on https://urs.earthdat
 
 ## Installation
 
-### Git clone (or download) this repository
+Installation into a miniforge enviromnent is suggested.  See [https://github.com/conda-forge/miniforge](https://github.com/conda-forge/miniforge) for installing miniforge.
 
-At the command line `git clone https://github.com/surftemp/usgs.git`
+Create a miniforge environment called usgs_env using:
 
-and change into the directory usgs
+```
+mamba create -n usgs_env python=3.11
+mamba activate usgs_env
+mamba install python-dateutil requests shapely
+```
 
-### Anaconda (recommended)
+Install the usgs tools into this environment:
 
-Anaconda is an open source distribution of the Python programming language,
-deployed and managed with the conda package management system.
-
-1. Install Anaconda from https://www.continuum.io/downloads
-2. Create a Python 3.6 environment including required python packages
-    - At the command line: `conda env create -f environment.yml` 
-    - Or alternately using the Anaconda Navigator GUI
-        1. Select 'Environments' from the left menu bar
-        2. Click the 'import' button at the bottom of the list of environments
-        3. In the dialog box enter name `usgs`
-        4. For the specification file, select the environment.yml file included in this repository
-        5. Click 'import'
-3. Activate conda environment: `conda activate usgs_env` on Unix, or `activate usgs_env` on Windows.  
-4. Install this package: `python setup.py install`
-
-Once installed into a conda environment, you need only activate the environment
-in a new shell (step #3 above) to access this library.
-
-### Pip
-
-This library may alternately be installed via Pip into an existing python 3.6 environment.
-
-1. Ensure local python >= 3.6
-2. Create environment: `python3 -m venv ~/usgs_env`
-3. Activate environment: `. ~/usgs_env/bin/activate`   
-4. Install requirements `pip install -r requirements.txt`
-5. Install this package: `python install .`
-
-### Updates
-
-To install a newer version of this library, if you git-cloned the repository 
-initially (as above), you can use git to perform the update:
+```
+git clone git@github.com:surftemp/usgs.git
+cd usgs
+pip install .
+```
 
 ### Updating usgs
 
 Use the following commands to update the usgs tool when the source code in github has changed:
 
 ```
-conda activate usgs_env OR . ~/usgs_env/bin/activate
+conda activate usgs_env
+# go to the folder where the usgs source code was cloned
+cd path/to/usgs
 git pull
 pip uninstall usgs
 pip install .
