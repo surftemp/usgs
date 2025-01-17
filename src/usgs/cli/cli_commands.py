@@ -14,9 +14,9 @@ from ..utils.scene import Scene
 
 
 USER_PASS_WARNING = """
-api username and password are required
-please set environment variables USGS_USERNAME and USGS_PASSWORD
-or alternatively supply the --username and --password command line parameters
+api username and token are required
+please set environment variables USGS_USERNAME and USGS_TOKEN
+or alternatively supply the --username and --token command line parameters
 """
 
 
@@ -24,7 +24,7 @@ def _ensure_login(f):
     def fn(**kwargs):
         wraps(f)
         # need login
-        if not kwargs.get("username") or not kwargs.get("password"):
+        if not kwargs.get("username") or not kwargs.get("token"):
             print(USER_PASS_WARNING)
             sys.exit(1)
         return f(**kwargs)
@@ -69,7 +69,7 @@ def DatasetSearch(**kwargs):
 
     with API_Context(
             kwargs.get("username"),
-            kwargs.get("password"),
+            kwargs.get("token"),
             kwargs.get("catalog")
     ) as context:
         print(json.dumps(
@@ -88,7 +88,7 @@ def DatasetSearch(**kwargs):
 def DatasetFields(**kwargs):
     with API_Context(
             kwargs.get("username"),
-            kwargs.get("password"),
+            kwargs.get("token"),
             kwargs.get("catalog")
     ) as context:
         print(json.dumps(
@@ -115,7 +115,7 @@ def GridToLatLong(**kwargs):
 def SceneMetadata(**kwargs):
     with API_Context(
             kwargs.get("username"),
-            kwargs.get("password"),
+            kwargs.get("token"),
             kwargs.get("catalog")
     ) as context:
         # unpack as api returns a list
@@ -177,7 +177,7 @@ def Create_Saved_Search_To_File(**kwargs):
 
             with API_Context(
                     kwargs.get("username"),
-                    kwargs.get("password"),
+                    kwargs.get("token"),
                     catalog
             ) as context:
                 fields = context.DatasetFields(dataset)
@@ -288,7 +288,7 @@ def Run_Saved_Search(**kwargs):
     criteria = Search_Criteria.from_json(J)
     with API_Context(
             kwargs.get("username"),
-            kwargs.get("password"),
+            kwargs.get("token"),
             criteria.catalog
     ) as context:
         # when we unpack Search_Criteria into SceneSearch() we need to

@@ -23,9 +23,9 @@ def __main__(args=None):
         default=os.environ.get("USGS_USERNAME")
     )
     parser.add_argument(
-        "--password",
-        help="api eros account password. overrides the USGS_PASSWORD environment variable",
-        default=os.environ.get("USGS_PASSWORD")
+        "--token",
+        help="api eros access token. overrides the USGS_ACCESS_TOKEN environment variable",
+        default=os.environ.get("USGS_TOKEN")
     )
     parser.add_argument(
         "--data-dir",

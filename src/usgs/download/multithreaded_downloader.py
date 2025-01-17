@@ -151,7 +151,7 @@ class MultiThreadedDownloader:
                 break
 
 
-    def fetch(self, username, password, scenefile, download_folder, output_folder, limit, suffixes, no_download=False,
+    def fetch(self, username, token, scenefile, download_folder, output_folder, limit, suffixes, no_download=False,
               download_summary_path=""):
 
         with open(scenefile, "r") as f:
@@ -215,8 +215,8 @@ class MultiThreadedDownloader:
         serviceUrl = "https://m2m.cr.usgs.gov/api/api/json/stable/"
 
         # Login
-        payload = {'username': username, 'password': password}
-        apiKey = self.sendRequest(serviceUrl + "login", payload)
+        payload = {'username': username, 'token': token}
+        apiKey = self.sendRequest(serviceUrl + "login-token", payload)
 
         entity_ids = []
 
@@ -348,7 +348,7 @@ def main():
     parser = argparse.ArgumentParser()
 
     parser.add_argument('-u', '--username', default=os.getenv("USGS_USERNAME"), help='Username')
-    parser.add_argument('-p', '--password', default=os.getenv("USGS_PASSWORD"), help='Password')
+    parser.add_argument('-t', '--token', default=os.getenv("USGS_TOKEN"), help='Access Token')
     parser.add_argument('-f', '--filename', required=True, help='download entityId list')
     parser.add_argument('-d', '--download-folder', default=None, help='download folder path')
     parser.add_argument('-n', '--no-download', action="store_true", help='Do not download any new files')
@@ -362,7 +362,7 @@ def main():
     args = parser.parse_args()
 
     dl = MultiThreadedDownloader(args.file_cache_index)
-    dl.fetch(username=args.username, password=args.password, scenefile=args.filename,
+    dl.fetch(username=args.username, token=args.token, scenefile=args.filename,
              download_folder=os.path.abspath(args.download_folder), output_folder=os.path.abspath(args.output_folder), limit=args.limit,
              suffixes=args.file_suffixes, no_download=args.no_download, download_summary_path=args.download_summary_path)
 

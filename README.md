@@ -118,16 +118,18 @@ at any point with the `-h` flag.
 ### Environment variables
 
 Many of the commands which one may execute from the CLI require USGS account credentials. 
-These may be supplied as needed with the `--username` and `--password` arguments, 
+These may be supplied as needed with the `--username` and `--token` arguments, 
 or for convenience the CLI will pick them up from environment variables.
 
 A third environment variable is available to define the data directory.
 
 Environment Variable | CLI argument | Description
---- | --- | ---
+--- |--------------| ---
 `USGS_USERNAME` | `--username` | USGS account username
-`USGS_PASSWORD` | `--password` | USGS account password
+`USGS_TOKEN` | `--token`    | USGS access token
 `USGS_DATADIR` | `--data-dir` | Directory to store data
+
+Note: USGS access tokens may be created on your account page: https://ers.cr.usgs.gov/
 
 One may set environment variables directly in a shell with:
 
@@ -159,7 +161,7 @@ Please note that universal arguments (if environment variables are not set)
 should be supplied *before* the command.
 
 ```
-> usgs [--username USERNAME] [--password PASSWORD] [--data-dir DATA_DIR] [--debug] COMMAND ...
+> usgs [--username USERNAME] [--token TOKEN] [--data-dir DATA_DIR] [--debug] COMMAND ...
 ```
 
 For command-specific help, including descriptions of optional and positional arguments,

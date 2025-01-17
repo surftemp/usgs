@@ -51,12 +51,12 @@ class API_Context:
 
     LOGIN_VALIDITY = datetime.timedelta(hours=1)
 
-    def __init__(self, username: str, password: str, catalog_id: str):
+    def __init__(self, username: str, token: str, catalog_id: str):
         """
         :param catalog_id: which dataset catalog to access (previously 'node' in api version 1.2.1)
         """
         self.username = username
-        self.password = password
+        self.token = token
         if catalog_id not in [cat.value for cat in Catalogs]:
             raise ValueError("catalog_id should be one of {}".format(list(Catalogs)))
         self.catalog_id = catalog_id
@@ -65,7 +65,7 @@ class API_Context:
 
     def __enter__(self):
         self._login_time = datetime.datetime.now()
-        self.api_key = API_Context.Login(self.username, self.password, self.catalog_id)
+        self.api_key = API_Context.Login(self.username, self.token, self.catalog_id)
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -109,7 +109,7 @@ class API_Context:
         return j["data"]
 
     @staticmethod
-    def Login(username: str, password: str, catalog_id: str) -> str:
+    def Login(username: str, token: str, catalog_id: str) -> str:
         """
         :param catalog_id: which dataset catalog to use (previously 'node'
             in api version 1.2.1)
@@ -124,10 +124,10 @@ class API_Context:
         # "authType": "EROS"
 
         j = api.JSON_Request(
-            "login",
+            "login-token",
             data_params={
                 "username": username,
-                "password": password
+                "token": token
             },
             requests_fn=requests.post
         )
