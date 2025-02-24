@@ -110,10 +110,6 @@ class MultiThreadedDownloader:
             if work is not None:
                 completed = False
                 (url, download_folder, output_folder) = work
-                if "gap_mask" in url:
-                    # skip landsat7 gap masks
-                    print(f"Skipping {url} ...")
-                    completed = True
                 retry = 0
                 while not completed and retry <= self.retry_limit:
                     try:
@@ -151,8 +147,8 @@ class MultiThreadedDownloader:
                 break
 
 
-    def fetch(self, username, token, scenefile, download_folder, output_folder, limit, suffixes, no_download=False,
-              download_summary_path=""):
+    def fetch(self, username, token, scenefile, download_folder, output_folder, limit, suffixes, exclude_suffixes,
+              no_download=False, download_summary_path=""):
 
         with open(scenefile, "r") as f:
             lines = f.readlines()
@@ -165,9 +161,11 @@ class MultiThreadedDownloader:
             os.makedirs(download_folder, exist_ok=True)
 
         def require_file(display_id):
-            required_suffix = False if suffixes else True
             filename = display_id
             if suffixes:
+                for ending in exclude_suffixes:
+                    if filename.lower().endswith(ending.lower()):
+                        return False
                 for ending in suffixes:
                     if filename.lower().endswith(ending.lower()):
                         return True
@@ -354,6 +352,7 @@ def main():
     parser.add_argument('-n', '--no-download', action="store_true", help='Do not download any new files')
     parser.add_argument('-o', '--output-folder', default=".", help='output folder path')
     parser.add_argument('-s', '--file-suffixes', nargs="+", help='specify file suffix to download')
+    parser.add_argument('-x', '--exclude-file-suffixes', nargs="+", help='specify file suffix to exclude')
     parser.add_argument('-c', '--file-cache-index', type=str,
                         help='path to an key-value DBM index with filename->path cache lookup',default=None)
     parser.add_argument('-l', '--limit', type=int, help='limit to this many items', default=None)
@@ -364,7 +363,7 @@ def main():
     dl = MultiThreadedDownloader(args.file_cache_index)
     dl.fetch(username=args.username, token=args.token, scenefile=args.filename,
              download_folder=os.path.abspath(args.download_folder), output_folder=os.path.abspath(args.output_folder), limit=args.limit,
-             suffixes=args.file_suffixes, no_download=args.no_download, download_summary_path=args.download_summary_path)
+             suffixes=args.file_suffixes, exclude_suffixes=args.exclude_file_suffixes, no_download=args.no_download, download_summary_path=args.download_summary_path)
 
 if __name__ == '__main__':
     main()

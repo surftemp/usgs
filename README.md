@@ -81,7 +81,6 @@ The following datasets are of primary interest or have been tested with usgs
 
 Name | Catalog | Dataset
 --- | --- | ---
-Landsat 8 OLI/TIRS Collection 1 Level-1 | EE | LANDSAT_8_C1
 Landsat OLI/TIRS Collection 2 Level-1 (includes Landsat8/9)| EE | LANDSAT_OT_C2_L1
 Landsat OLI/TIRS Collection 2 Level-2 (includes Landsat8/9)| EE | LANDSAT_OT_C2_L2
 Landsat 7 ETM Collection 2 Level-1 | EE |  LANDSAT_ETM_C2_L1
@@ -183,19 +182,18 @@ Scenes are finally downloaded with the `download` command.
 - specify the min/max lat,lon coordinates of the bounding box.  For LANDSAT, an alternative is to specify row and path filters (see dataset specific filters, below)
 
 ```
-> usgs search-create LANDSAT_8_C1 my_search.json --lat-min -20.91 --lon-min 150.83 --lat-max -20.68 --lon-max 151.16  --start-date 2015-01-01 --end-date 2019-01-01 --max-cloud-cover 10
-WARNING: this dataset does not support the min and max cloud cover options. These may be available as additional criteria.
+> usgs search-create  LANDSAT_OT_C2_L1 my_search.json --lat-min -20.91 --lon-min 150.83 --lat-max -20.68 --lon-max 151.16 --start-date 2015-01-01 --end-date 2019-01-01 --max-cloud-cover 10
 Would you like to set any dataset-specific additional criteria? n
 ```
 
 The following dataset specific filters are supported:
 
-option          | description
---------------- | ---------------------------------------------------------------------- 
-`--day-only`    | include only descending/day scenes (LANDSAT_OT_C2_L1 only) 
- `--night-only` | include only ascending/night scenes (LANDSAT_OT_C2_L1 only) 
- `--path`       | include scenes from the specified path only (LANDSAT_OT_C2_L1/L2 only) 
- `--row`        | include scenes from the specified row only (LANDSAT_OT_C2_L1/L2 only) 
+| option         | description                                                            |
+|----------------|------------------------------------------------------------------------|
+| `--day-only`   | include only descending/day scenes (LANDSAT_OT_C2_L1 only)             |
+| `--night-only` | include only ascending/night scenes (LANDSAT_OT_C2_L1 only)            |
+| `--path`       | include scenes from the specified path only (LANDSAT_OT_C2_L1/L2 only) |
+|  `--row`       | include scenes from the specified row only (LANDSAT_OT_C2_L1/L2 only)  |
 
 #### 2. Run the saved search query
 
@@ -203,9 +201,9 @@ Find scenes identified by catalog, dataset, id
 
 ```
 > usgs search-run my_search.json
-EE, LANDSAT_8_C1, LC80920742019107LGN00
-EE, LANDSAT_8_C1, LC80920742019171LGN00
-EE, LANDSAT_8_C1, LC80920742019251LGN00
+EE,  LANDSAT_OT_C2_L1, LC80920742019107LGN00
+EE,  LANDSAT_OT_C2_L1, LC80920742019171LGN00
+EE,  LANDSAT_OT_C2_L1, LC80920742019251LGN00
 ...
 ```
 
@@ -214,7 +212,7 @@ To see more detail on search results supply the `--full-details` flag.
 To print metadata for a scene use the `scene-metadata` command, passing the dataset and id:
 
 ```
-> usgs scene-metadata LANDSAT_8_C1 LC80920742019107LGN00
+> usgs scene-metadata  LANDSAT_OT_C2_L1 LC80920742019107LGN00
 {
   "browse": [],
   "cloudCover": null,
@@ -225,5 +223,101 @@ To print metadata for a scene use the `scene-metadata` command, passing the data
 
 #### 3. Download
 
-Use the usgs_download command to download scenes, documentation coming soon
+Use the usgs_download command to download scenes, selecting which files from each scene are relevant.  Each file corresponds to a band or supplies metadata about the scene.
+
+Example usage:
+
+```
+usgs_download --filename <scenes.csv> --username <username> --token <token> --output-folder outputs --download-folder downloads --file-suffixes B4.TIF B5.TIF
+```
+
+##### Choosing which files/bands to download
+
+The `--file-suffixes` option specifies the suffixes of the files within each scene to download.  
+
+Note - although not included in the above example, you will almost certainly need to include either suffix `.XML` or `.MTL` to download metadata files which will be needed to decode the scene
+
+Consult the dataset's documentation for the filenames and suffixes that map to bands of interest in your selected dataset.
+
+The CSV file passed to the `--filename` option specifies which scenes to download, for example (Landsat 7 Collection 2 Level 1):
+
+```
+LANDSAT_ETM_C2_L1
+LE70090121999183AGS01
+LE70100121999190EDC00
+LE70080121999240EDC00
+LE70100121999254EDC00
+LE70090121999263EDC00
+LE70832321999269EDC00
+LE70090122000074AGS00
+LE70100122000081EDC00
+```
+
+The first line specifies the dataset id (LANDSAT_ETM_C2_L1) and the remaining lines specify the ids of each scene to download.
+
+Note - each execution of `usgs_download` can only obtain files from a single dataset
+
+##### download and output folders
+
+The `usgs_download` tool can be used to download the files to a separate area (specify the root directory of the cache using the `--download-folder` option), into which files are donwloaded 
+using the directory structure described in the following example:
+
+```
+<download-folder>/1999
+    /07
+        /02
+            /LE07_L1TP_009012_19990702_20200918_02_T1_B4.TIF
+            /LE07_L1TP_009012_19990702_20200918_02_T1_B5.TIF
+        /09
+            /LE07_L1TP_010012_19990709_20200918_02_T1_B4.TIF
+            /LE07_L1TP_010012_19990709_20200918_02_T1_B5.TIF
+```
+
+Note - if a file already exists in the download folder, it will not be re-downloaded from USGS.
+
+Symbolic links are created from the download locations into the folder specified using the `--output-folder` option 
+
+##### Download summary files
+
+During operation, the tool will attempt to download all requested files, with retries on failure, and report errors.  A useful option `--download-summary-path` can be used to output a CSV file containing the expected output files
+
+The format of the download summary CSV file is:
+
+```
+LC82320182014114LGN01,LC08_L1GT_232018_20140424_20200911_02_T2_B10.TIF
+LC82320182014114LGN01,LC08_L1GT_232018_20140424_20200911_02_T2_B11.TIF
+LC82320182014114LGN01,LC08_L1GT_232018_20140424_20200911_02_T2_B1.TIF
+...
+```
+
+After the tool is run, the caller can consult this file and check if any files listed in this CSV file were not actually included in the output
+
+##### Working with a file index
+
+Sometimes, there is already a cache of downloaded files that can be re-used.  These can be utilised instead of re-downloading files from USGS, by consulting a file index
+
+A separate tool `index_files` is used to build the index
+
+```
+index_files --scan-folder <folders> --index-path <index-path>
+```
+
+where `<folders>` provides one or more folders to search under and `<index-path>` is the path to an index to create or update
+
+Once the index is built, its path can be supplied to the `usgs_download` tool using the `--file-cache-index` option and the tool will check that files do not already exist in this index before downloading them.
+
+##### Other options
+
+| option         | description                                                                                                      |
+|----------------|------------------------------------------------------------------------------------------------------------------|
+| `--limit`      | if specified, limit the number of scenes to be downloaded                                                        |
+| `--no-download`| if specified, do not download any files from USGS (the tool will still link already downloaded or indexed files) |
+| `--exclude-file-suffixes` | if specified, ignore files with these suffixes |
+
+Note: the --exclude-file-suffixes option is useful to avoid downloading spurious landsat7 "gap mask" files 
+
+```
+usgs_download --file-suffixes B4.TIF B5.TIF --exclude-file-suffixes _GM_B4.TIF _GM_B5.TIF ...
+```
+
 
