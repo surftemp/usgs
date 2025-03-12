@@ -239,7 +239,17 @@ Note - although not included in the above example, you will almost certainly nee
 
 Consult the dataset's documentation for the filenames and suffixes that map to bands of interest in your selected dataset.
 
-The CSV file passed to the `--filename` option specifies which scenes to download, for example (Landsat 7 Collection 2 Level 1):
+The CSV file passed to the `--filename` option specifies which scenes to download, for example (Landsat 7 Collection 2 Level 1).  Two formats are supported:
+
+Format1 (the output from `usgs search-run`):
+
+```
+EE,  LANDSAT_OT_C2_L1, LC80920742019107LGN00
+EE,  LANDSAT_OT_C2_L1, LC80920742019171LGN00
+EE,  LANDSAT_OT_C2_L1, LC80920742019251LGN00
+```
+
+Format2 (legacy):
 
 ```
 LANDSAT_ETM_C2_L1

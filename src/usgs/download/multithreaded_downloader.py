@@ -150,10 +150,37 @@ class MultiThreadedDownloader:
     def fetch(self, username, token, scenefile, download_folder, output_folder, limit, suffixes, exclude_suffixes,
               no_download=False, download_summary_path=""):
 
+        # read the input file
+        lines = []
         with open(scenefile, "r") as f:
-            lines = f.readlines()
+            rdr = csv.reader(f)
+            for row in rdr:
+                lines.append(row)
 
-        dataset_name = lines[0].strip()
+        # decode it
+        entity_ids = []
+        if len(lines[0]) == 1:
+            # expected format is:
+            #
+            # datasetId
+            # entityId
+            # entityId
+            # .....
+            dataset_name = lines[0][0].strip()
+            for line in lines[1:]:
+                entity_ids.append(line[0])
+        elif len(lines[0]) == 3:
+            # format is
+            #
+            # catalogId, datasetId, entityId
+            # catalogId, datasetId, entityId
+            # ...
+            dataset_name = lines[0][1].strip()
+            for line in lines:
+                entity_ids.append(line[2].strip())
+        else:
+            raise ValueError("input file format not recognized")
+
         download_folder = download_folder if download_folder is not None else output_folder
 
         os.makedirs(output_folder, exist_ok=True)
@@ -162,10 +189,11 @@ class MultiThreadedDownloader:
 
         def require_file(display_id):
             filename = display_id
-            if suffixes:
+            if exclude_suffixes:
                 for ending in exclude_suffixes:
                     if filename.lower().endswith(ending.lower()):
                         return False
+            if suffixes:
                 for ending in suffixes:
                     if filename.lower().endswith(ending.lower()):
                         return True
@@ -216,16 +244,8 @@ class MultiThreadedDownloader:
         payload = {'username': username, 'token': token}
         apiKey = self.sendRequest(serviceUrl + "login-token", payload)
 
-        entity_ids = []
-
-        lines.pop(0)
-        ctr = 0
-        for line in lines:
-            entity_id = line.strip()
-
-            ctr += 1
-            if limit is None or ctr <= limit:
-                entity_ids.append(entity_id)
+        if limit is not None:
+            entity_ids = entity_ids[:limit]
 
         payload = {
             "entityIds": entity_ids,
@@ -347,7 +367,7 @@ def main():
 
     parser.add_argument('-u', '--username', default=os.getenv("USGS_USERNAME"), help='Username')
     parser.add_argument('-t', '--token', default=os.getenv("USGS_TOKEN"), help='Access Token')
-    parser.add_argument('-f', '--filename', required=True, help='download entityId list')
+    parser.add_argument('-f', '--filename', required=True, help='download entityId list or 3-column "catalogId,datasetId,entityId" CSV format')
     parser.add_argument('-d', '--download-folder', default=None, help='download folder path')
     parser.add_argument('-n', '--no-download', action="store_true", help='Do not download any new files')
     parser.add_argument('-o', '--output-folder', default=".", help='output folder path')
@@ -362,7 +382,8 @@ def main():
 
     dl = MultiThreadedDownloader(args.file_cache_index)
     dl.fetch(username=args.username, token=args.token, scenefile=args.filename,
-             download_folder=os.path.abspath(args.download_folder), output_folder=os.path.abspath(args.output_folder), limit=args.limit,
+             download_folder=os.path.abspath(args.download_folder)if args.download_folder else None,
+             output_folder=os.path.abspath(args.output_folder), limit=args.limit,
              suffixes=args.file_suffixes, exclude_suffixes=args.exclude_file_suffixes, no_download=args.no_download, download_summary_path=args.download_summary_path)
 
 if __name__ == '__main__':
