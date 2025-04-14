@@ -13,7 +13,7 @@ import csv
 # =========================================================================================================================
 
 import json
-import shutil
+import logging
 
 import requests
 import sys
@@ -50,9 +50,37 @@ class MultiThreadedDownloader:
         self.retry_delay = retry_delay
         self.retry_limit = retry_limit
         self.file_cache = FileUtils(file_cache_index_path) if file_cache_index_path else None
+        self.logger = logging.getLogger("MultiThreadedDownloader")
+
+        self.scanned_files = set()
+        self.expected_downloads = set()
+        self.failed_downloads = set()
+        self.completed_downloads = set()
+        self.lock = threading.Lock()
+
+    def report_failure(self, filename):
+        self.lock.acquire()
+        try:
+            self.failed_downloads.add(filename)
+        finally:
+            self.lock.release()
+
+    def report_success(self, filename):
+        self.lock.acquire()
+        try:
+            self.completed_downloads.add(filename)
+        finally:
+            self.lock.release()
+
+    # remove a path, ignoring any exceptions
+    def remove_path(self, path):
+        try:
+            os.remove(path)
+        except:
+            self.logger.exception(f"removing {path}")
 
     # Send http request
-    def sendRequest(self, url, data, apiKey=None, exitIfNoResponse=True):
+    def send_request(self, url, data, apiKey=None):
         json_data = json.dumps(data)
 
         if apiKey == None:
@@ -60,49 +88,27 @@ class MultiThreadedDownloader:
         else:
             headers = {'X-Auth-Token': apiKey}
             response = requests.post(url, json_data, headers=headers)
-
         try:
-            httpStatusCode = response.status_code
-            if response == None:
-                print("No output from service")
-                if exitIfNoResponse:
-                    sys.exit()
-                else:
-                    return False
-            output = json.loads(response.text)
-            if output['errorCode'] != None:
-                print(output['errorCode'], "- ", output['errorMessage'])
-                if exitIfNoResponse:
-                    sys.exit()
-                else:
-                    return False
-            if httpStatusCode == 404:
-                print("404 Not Found")
-                if exitIfNoResponse:
-                    sys.exit()
-                else:
-                    return False
-            elif httpStatusCode == 401:
-                print("401 Unauthorized")
-                if exitIfNoResponse:
-                    sys.exit()
-                else:
-                    return False
-            elif httpStatusCode == 400:
-                print("Error Code", httpStatusCode)
-                if exitIfNoResponse:
-                    sys.exit()
-                else:
-                    return False
-        except Exception as e:
-            response.close()
-            print(e)
-            if exitIfNoResponse:
-                sys.exit()
-            else:
+            if response is None:
+                self.logger.error(f"No output from service for {url}")
                 return False
-        response.close()
-        return output['data']
+            output = json.loads(response.text)
+            httpStatusCode = response.status_code
+            if output.get('errorCode',None) != None:
+                error_code = output['errorCode']
+                error_message = output.get('errorMessage','')
+                self.logger.error(f"{error_code}/{error_message} for {url}")
+                return False
+            if httpStatusCode >= 400:
+                self.logger.error(f"{httpStatusCode} Not Found for {url}")
+                return False
+            response.close()
+            return output['data']
+        except Exception as e:
+            if response is not None:
+                response.close()
+            self.logger.exception(f"fetching {url}")
+            return False
 
     def download_files(self):
         while True:
@@ -113,17 +119,16 @@ class MultiThreadedDownloader:
                 retry = 0
                 while not completed and retry <= self.retry_limit:
                     try:
-                        print(f"Downloading from {url} ...")
+                        self.logger.debug(f"Downloading from {url}")
                         response = requests.get(url, stream=True)
                         if not response.ok:
-                            print(
+                            self.logger.warning(
                                 f"Failed to download from {url}: {response.status_code}. Will try to re-download after a {self.retry_delay} second display.")
-                            retry += 1
                             time.sleep(self.retry_delay)
                             continue
                         disposition = response.headers['content-disposition']
                         filename = re.findall("filename=(.+)", disposition)[0].strip("\"")
-                        print(f"Downloading {filename} ...")
+                        self.logger.debug(f"Downloading {filename} ...")
                         if download_folder != output_folder:
                             download_path = create_download_path(download_folder, filename)
                         else:
@@ -131,17 +136,25 @@ class MultiThreadedDownloader:
                         output_path = os.path.join(output_folder, filename)
                         with open(download_path, 'wb') as f:
                             f.write(response.content)
-                        print(f"Downloaded {filename}")
-                        if download_path != output_path:
-                            print("creating symlink to download: " + filename)
-                            os.symlink(download_path,output_path)
-                        completed = True
+
+                        # check that the downloaded file is not empty before marking as complete
+                        if os.lstat(download_path).st_size > 0:
+                            self.logger.debug(f"Downloaded {filename}")
+                            if download_path != output_path:
+                                self.logger.debug(f"creating symlink {output_path} to {download_path}")
+                                os.symlink(download_path,output_path)
+                            self.report_success(filename)
+                            completed = True
+                        else:
+                            self.logger.warning(f"downloaded file {download_path} was empty, retrying")
+                            self.remove_path(download_path)
                     except Exception as e:
-                        print(
-                            f"Failed to download from {url} due to exception: {str(e)}.")
-                        completed = True
+                        time.sleep(self.retry_delay)
+                        self.logger.exception(f"Failed to download from {url} due to exception")
+                    retry += 1
                 if not completed:
-                    print(f"Failed to download from {url}. No retries left.")
+                    self.logger.error(f"Failed to download from {url}. No retries left.")
+                    self.report_failure(filename)
             else:
                 # when None is obtained from the queue, complete execution, there is no more work to do
                 break
@@ -168,7 +181,7 @@ class MultiThreadedDownloader:
             # .....
             dataset_name = lines[0][0].strip()
             for line in lines[1:]:
-                entity_ids.append(line[0])
+                entity_ids.append(line[0].strip())
         elif len(lines[0]) == 3:
             # format is
             #
@@ -204,34 +217,56 @@ class MultiThreadedDownloader:
             filename = display_id
             if download_folder != output_folder:
                 download_path = create_download_path(download_folder, filename)
-
             else:
                 download_path = os.path.join(download_folder, filename)
 
             output_path = os.path.join(output_folder, filename)
 
+            # check that the file exists, is not empty or points to a missing or empty symlink
             if os.path.exists(output_path):
-                print("already in output: "+filename)
-                return None
+                if os.path.islink(output_path):
+                    linked_path = os.readlink(output_path)
+                    if os.path.exists(linked_path):
+                        if os.lstat(linked_path).st_size > 0:
+                            self.logger.debug(f"{filename} already linked in output")
+                            return None
+                        else:
+                            self.logger.warning(f"removing empty copies of {filename}")
+                            self.remove_path(linked_path)
+                            self.remove_path(output_path)
+                    else:
+                        self.remove_path(output_path)
+                else:
+                    if os.lstat(output_path).st_size > 0:
+                        self.logger.debug(f"{filename} already in output")
+                        return None
+                    else:
+                        self.logger.warning(f"removing empty copies of {filename}")
+                        self.remove_path(output_path)
 
             if os.path.exists(download_path):
-                print("already downloaded: "+download_path)
-                if download_path != output_path:
-                    print("creating symlink from download to output: "+filename)
-                    os.symlink(download_path, output_path)
-                return None
+                if os.lstat(download_path).st_size > 0:
+                    self.logger.debug(f"{filename} already downloaded")
+                    if download_path != output_path:
+                        self.logger.debug(f"creating symlink from already downloaded {download_path} to {output_path}")
+                        os.symlink(download_path, output_path)
+                    return None
+                else:
+                    self.logger.warning(f"removing empty copies of {filename}")
+                    self.remove_path(download_path)
 
             if self.file_cache is not None:
                 cached_path = self.file_cache.get_path(filename)
                 if cached_path:
-                    print("creating symlink from cache to output: " + filename)
+                    self.logger.debug(f"creating symlink from cache {cached_path} to output {output_path}")
                     os.symlink(cached_path, output_path)
                     return None
 
             if no_download:
-                print(f"{filename}: download required but not enabled")
+                self.logger.warning(f"{filename}: download required but not enabled")
                 return None
 
+            self.expected_downloads.add(filename)
             return download_path # this file needs to be downloaded
 
         label = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -242,7 +277,11 @@ class MultiThreadedDownloader:
 
         # Login
         payload = {'username': username, 'token': token}
-        apiKey = self.sendRequest(serviceUrl + "login-token", payload)
+        apiKey = self.send_request(serviceUrl + "login-token", payload)
+
+        if apiKey == False:
+            self.logger.error("login failed, exiting")
+            sys.exit(1)
 
         if limit is not None:
             entity_ids = entity_ids[:limit]
@@ -252,16 +291,26 @@ class MultiThreadedDownloader:
             "datasetName": dataset_name
         }
 
-        print("Getting product download options...\n")
-        products = self.sendRequest(serviceUrl + "download-options", payload, apiKey)
-        print("Got product download options\n")
+        self.logger.info(f"getting product download options for {len(entity_ids)} entities")
+        products = self.send_request(serviceUrl + "download-options", payload, apiKey)
+        if apiKey == False:
+            self.logger.error("failed to get download options, exiting")
+            sys.exit(1)
+
+        if products is None:
+            self.logger.error("no products returned, exiting")
+            sys.exit(1)
+
+        self.logger.info(f"got {len(products)} products for download")
 
         # Select products
         downloads = []
         expected_outputs = []
 
         # Select band files
-        scanned_files = set()
+
+
+
         for product in products:
             product_entity_id = product["entityId"]
             if product["secondaryDownloads"] is not None and len(product["secondaryDownloads"]) > 0:
@@ -270,13 +319,15 @@ class MultiThreadedDownloader:
                         display_id = secondaryDownload["displayId"]
                         if not require_file(display_id):
                             continue
-                        if display_id in scanned_files:
+                        if display_id in self.scanned_files:
                             continue
                         expected_outputs.append([product_entity_id, display_id])
-                        scanned_files.add(display_id)
+                        self.scanned_files.add(display_id)
+
                         if include_file_for_download(display_id):
                             downloads.append(
                                 {"entityId": secondaryDownload["entityId"], "productId": secondaryDownload["id"]})
+
 
         if download_summary_path:
             download_summary_folder = os.path.split(download_summary_path)[0]
@@ -287,7 +338,7 @@ class MultiThreadedDownloader:
                     writer.writerow(expected_output)
 
         if len(downloads) == 0:
-            print("No downloads")
+            self.logger.warning("no downloads, exiting")
             sys.exit(0)
 
         # start some worker threads
@@ -301,14 +352,21 @@ class MultiThreadedDownloader:
             "label": label
         }
 
-        print(f"Sending download request ...\n")
-        results = self.sendRequest(serviceUrl + "download-request", payload, apiKey)
-        print(f"Done sending download request\n")
+        self.logger.info("sending download request...")
+        results = self.send_request(serviceUrl + "download-request", payload, apiKey)
+        if results == False:
+            self.logger.error("download request failed, exiting")
+            sys.exit(1)
 
-        # Attempt the download URLs
+        self.logger.info("sent download request...")
+
+        # Attempt the download URLs, add them to the job queue
         for result in results['availableDownloads']:
             self.jobqueue.put((result['url'], download_folder, output_folder))
 
+        self.logger.info("downloading files... please do not close the program")
+
+        # for downloads that are still being prepared, wait for those
         preparingDownloadCount = len(results['preparingDownloads'])
         preparingDownloadIds = []
         if preparingDownloadCount > 0:
@@ -317,7 +375,7 @@ class MultiThreadedDownloader:
 
             payload = {"label": label}
 
-            results = self.sendRequest(serviceUrl + "download-retrieve", payload, apiKey, False)
+            results = self.send_request(serviceUrl + "download-retrieve", payload, apiKey)
             if results != False:
                 for result in results['available']:
                     if result['downloadId'] in preparingDownloadIds:
@@ -331,36 +389,38 @@ class MultiThreadedDownloader:
 
             # Didn't get all download URLs, retrieve again after 30 seconds
             while len(preparingDownloadIds) > 0:
-                print(
-                    f"{len(preparingDownloadIds)} downloads are not available yet. Waiting for 30s to retrieve again\n")
+                self.logger.info(
+                    f"{len(preparingDownloadIds)} downloads are not available yet. Waiting for 30s to retrieve again")
                 time.sleep(30)
-                results = self.sendRequest(serviceUrl + "download-retrieve", payload, apiKey, False)
+                results = self.send_request(serviceUrl + "download-retrieve", payload, apiKey)
                 if results != False:
                     for result in results['available']:
                         if result['downloadId'] in preparingDownloadIds:
                             preparingDownloadIds.remove(result['downloadId'])
                             self.jobqueue.put((result['url'], download_folder, output_folder))
 
-        print("\nGot download urls for all downloads\n")
+        self.logger.info("got download urls for all downloads")
 
         # Logout
         endpoint = "logout"
-        if self.sendRequest(serviceUrl + endpoint, None, apiKey) == None:
-            print("Logged Out\n")
+        if self.send_request(serviceUrl + endpoint, None, apiKey) == None:
+            self.logger.info("logged Out\n")
         else:
-            print("Logout Failed\n")
+            self.logger.warning("logout Failed\n")
 
         for i in range(self.maxthreads):
             self.jobqueue.put(None) # this will cause the threads to terminate
 
-        print("Downloading files... Please do not close the program\n")
+
         for thread in self.threads:
             thread.join()
 
-        print("Complete Downloading")
+        self.logger.info("completed Downloads")
 
         executionTime = round((time.time() - startTime), 2)
-        print(f'Total time: {executionTime} seconds')
+        self.logger.info(f'Total time: {executionTime} seconds')
+
+        self.logger.info(f"Summary: scanned files: {len(self.scanned_files)} download attempted: {len(self.expected_downloads)} downloads completed: {len(self.completed_downloads)} failed downloads: {len(self.failed_downloads)}")
 
 def main():
     parser = argparse.ArgumentParser()
@@ -377,9 +437,11 @@ def main():
                         help='path to an key-value DBM index with filename->path cache lookup',default=None)
     parser.add_argument('-l', '--limit', type=int, help='limit to this many items', default=None)
     parser.add_argument('-e', '--download-summary-path', help='path to write a CSV with summary of expected downloads', default='')
+    parser.add_argument('-v', '--verbose', action="store_true", help='Enable verbose output')
 
     args = parser.parse_args()
 
+    logging.basicConfig(level=logging.DEBUG if args.verbose else logging.INFO)
     dl = MultiThreadedDownloader(args.file_cache_index)
     dl.fetch(username=args.username, token=args.token, scenefile=args.filename,
              download_folder=os.path.abspath(args.download_folder)if args.download_folder else None,
