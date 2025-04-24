@@ -34,7 +34,7 @@ Create a miniforge environment called usgs_env using:
 ```
 mamba create -n usgs_env python=3.11
 mamba activate usgs_env
-mamba install python-dateutil requests shapely
+mamba install python-dateutil requests shapely rioxarray
 ```
 
 Install the usgs tools into this environment:

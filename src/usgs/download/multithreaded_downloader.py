@@ -24,6 +24,7 @@ import threading
 import datetime
 import os
 import queue
+import rioxarray
 
 from usgs.utils.file_utils import FileUtils
 
@@ -41,13 +42,13 @@ def create_download_path(download_folder, filename):
     os.makedirs(download_folder_ymd, exist_ok=True)
     return os.path.join(download_folder_ymd, filename)
 
+
 class MultiThreadedDownloader:
 
-    def __init__(self, file_cache_index_path=None, maxthreads=5, retry_delay=30, retry_limit=5):
+    def __init__(self, file_cache_index_path=None, maxthreads=5, retry_limit=3):
         self.maxthreads = maxthreads  # Threads count for downloads
         self.jobqueue = queue.Queue()
         self.threads = []
-        self.retry_delay = retry_delay
         self.retry_limit = retry_limit
         self.file_cache = FileUtils(file_cache_index_path) if file_cache_index_path else None
         self.logger = logging.getLogger("MultiThreadedDownloader")
@@ -57,6 +58,8 @@ class MultiThreadedDownloader:
         self.failed_downloads = set()
         self.completed_downloads = set()
         self.lock = threading.Lock()
+
+        self.queue_loading = True
 
     def report_failure(self, filename):
         self.lock.acquire()
@@ -94,9 +97,9 @@ class MultiThreadedDownloader:
                 return False
             output = json.loads(response.text)
             httpStatusCode = response.status_code
-            if output.get('errorCode',None) != None:
+            if output.get('errorCode', None) != None:
                 error_code = output['errorCode']
-                error_message = output.get('errorMessage','')
+                error_message = output.get('errorMessage', '')
                 self.logger.error(f"{error_code}/{error_message} for {url}")
                 return False
             if httpStatusCode >= 400:
@@ -110,55 +113,75 @@ class MultiThreadedDownloader:
             self.logger.exception(f"fetching {url}")
             return False
 
+    def check_download(self,download_path):
+        if os.lstat(download_path).st_size == 0:
+            self.logger.warning(f"Downloaded file {download_path} is empty")
+            return False
+        if download_path.lower().endswith(".tif"):
+            # check that the TIF file can be loaded
+            da = None
+            try:
+                da = rioxarray.open_rasterio(download_path).squeeze()
+                # access the pixels in the 4 corners to test for corruption
+                d1 = da[0, 0].item()
+                d2 = da[0, -1].item()
+                d3 = da[-1, 0].item()
+                d4 = da[-1, -1].item()
+            except:
+                self.logger.exception(f"Download file {download_path} appears to be corrupt")
+                return False
+            finally:
+                if da is not None:
+                    da.close()
+        return True
+
     def download_files(self):
-        while True:
-            work = self.jobqueue.get()
-            if work is not None:
-                completed = False
-                (url, download_folder, output_folder) = work
-                retry = 0
-                while not completed and retry <= self.retry_limit:
-                    try:
-                        self.logger.debug(f"Downloading from {url}")
-                        response = requests.get(url, stream=True)
-                        if not response.ok:
-                            self.logger.warning(
-                                f"Failed to download from {url}: {response.status_code}. Will try to re-download after a {self.retry_delay} second display.")
-                            time.sleep(self.retry_delay)
-                            continue
-                        disposition = response.headers['content-disposition']
-                        filename = re.findall("filename=(.+)", disposition)[0].strip("\"")
-                        self.logger.debug(f"Downloading {filename} ...")
-                        if download_folder != output_folder:
-                            download_path = create_download_path(download_folder, filename)
-                        else:
-                            download_path = os.path.join(download_folder, filename)
-                        output_path = os.path.join(output_folder, filename)
-                        with open(download_path, 'wb') as f:
-                            f.write(response.content)
-
-                        # check that the downloaded file is not empty before marking as complete
-                        if os.lstat(download_path).st_size > 0:
-                            self.logger.debug(f"Downloaded {filename}")
-                            if download_path != output_path:
-                                self.logger.debug(f"creating symlink {output_path} to {download_path}")
-                                os.symlink(download_path,output_path)
-                            self.report_success(filename)
-                            completed = True
-                        else:
-                            self.logger.warning(f"downloaded file {download_path} was empty, retrying")
+        try:
+            while True:
+                job = self.jobqueue.get()
+                if job is None:
+                    return
+                (url, download_folder, output_folder) = job
+                try:
+                    self.logger.debug(f"Downloading from {url}")
+                    response = requests.get(url, stream=True)
+                    if not response.ok:
+                        raise ValueError("bad response")
+                    disposition = response.headers['content-disposition']
+                    filename = re.findall("filename=(.+)", disposition)[0].strip("\"")
+                    self.logger.debug(f"Downloading {filename} ...")
+                    if download_folder != output_folder:
+                        download_path = create_download_path(download_folder, filename)
+                    else:
+                        download_path = os.path.join(download_folder, filename)
+                    output_path = os.path.join(output_folder, filename)
+                    content = response.content  # this should read the data from the connection
+                    with open(download_path, 'wb') as f:
+                        try:
+                            f.write(content)
+                        except:
+                            # write failed
+                            # do not leave a broken file behind
                             self.remove_path(download_path)
-                    except Exception as e:
-                        time.sleep(self.retry_delay)
-                        self.logger.exception(f"Failed to download from {url} due to exception")
-                    retry += 1
-                if not completed:
-                    self.logger.error(f"Failed to download from {url}. No retries left.")
-                    self.report_failure(filename)
-            else:
-                # when None is obtained from the queue, complete execution, there is no more work to do
-                break
+                            raise
 
+                    # check that the downloaded file is not empty or corrupt before marking as complete
+                    if self.check_download(download_path):
+                        self.logger.info(f"Downloaded {filename}")
+                        if download_path != output_path:
+                            if os.path.exists(output_path):
+                                self.remove_path(output_path)
+                            self.logger.debug(f"creating symlink {output_path} to {download_path}")
+                            os.symlink(download_path, output_path)
+                        self.report_success(url)
+                    else:
+                        self.remove_path(download_path)
+                        self.jobqueue.put((url, download_folder, output_folder))
+                except Exception:
+                    self.logger.exception(f"Failed to download from {url}")
+                    self.jobqueue.put((url, download_folder, output_folder))
+        except:
+            self.logger.exception("download_files") # this should not be reachable
 
     def fetch(self, username, token, scenefile, download_folder, output_folder, limit, suffixes, exclude_suffixes,
               no_download=False, download_summary_path=""):
@@ -223,26 +246,28 @@ class MultiThreadedDownloader:
             output_path = os.path.join(output_folder, filename)
 
             # check that the file exists, is not empty or points to a missing or empty symlink
-            if os.path.exists(output_path):
-                if os.path.islink(output_path):
-                    linked_path = os.readlink(output_path)
-                    if os.path.exists(linked_path):
-                        if os.lstat(linked_path).st_size > 0:
-                            self.logger.debug(f"{filename} already linked in output")
-                            return None
-                        else:
-                            self.logger.warning(f"removing empty copies of {filename}")
-                            self.remove_path(linked_path)
-                            self.remove_path(output_path)
-                    else:
-                        self.remove_path(output_path)
+
+            if os.path.isfile(output_path):
+                if os.lstat(output_path).st_size > 0:
+                    self.logger.debug(f"{filename} already in output")
+                    return None
                 else:
-                    if os.lstat(output_path).st_size > 0:
-                        self.logger.debug(f"{filename} already in output")
+                    self.logger.warning(f"removing empty copies of {filename}")
+                    self.remove_path(output_path)
+
+            if os.path.islink(output_path):
+                linked_path = os.readlink(output_path)
+                if os.path.exists(linked_path):
+                    if os.lstat(linked_path).st_size > 0:
+                        self.logger.debug(f"{filename} already linked in output")
                         return None
                     else:
                         self.logger.warning(f"removing empty copies of {filename}")
+                        self.remove_path(linked_path)
                         self.remove_path(output_path)
+                else:
+                    self.logger.warning(f"removing {filename} with broken sym-link")
+                    self.remove_path(output_path)
 
             if os.path.exists(download_path):
                 if os.lstat(download_path).st_size > 0:
@@ -267,7 +292,7 @@ class MultiThreadedDownloader:
                 return None
 
             self.expected_downloads.add(filename)
-            return download_path # this file needs to be downloaded
+            return download_path  # this file needs to be downloaded
 
         label = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 
@@ -309,8 +334,6 @@ class MultiThreadedDownloader:
 
         # Select band files
 
-
-
         for product in products:
             product_entity_id = product["entityId"]
             if product["secondaryDownloads"] is not None and len(product["secondaryDownloads"]) > 0:
@@ -328,24 +351,20 @@ class MultiThreadedDownloader:
                             downloads.append(
                                 {"entityId": secondaryDownload["entityId"], "productId": secondaryDownload["id"]})
 
-
         if download_summary_path:
             download_summary_folder = os.path.split(download_summary_path)[0]
-            os.makedirs(download_summary_folder,exist_ok=True)
-            with open(download_summary_path,"w") as f:
+            os.makedirs(download_summary_folder, exist_ok=True)
+            with open(download_summary_path, "w") as f:
                 writer = csv.writer(f)
                 for expected_output in expected_outputs:
                     writer.writerow(expected_output)
 
-        if len(downloads) == 0:
-            self.logger.warning("no downloads, exiting")
+        nr_downloads = len(downloads)
+        if nr_downloads == 0:
+            self.logger.warning("no downloads required, exiting")
             sys.exit(0)
-
-        # start some worker threads
-        for i in range(0, self.maxthreads):
-            thread = threading.Thread(target=lambda *dargs: self.download_files())
-            thread.start()
-            self.threads.append(thread)
+        else:
+            self.logger.info(f"{nr_downloads} downloads required")
 
         payload = {
             "downloads": downloads,
@@ -364,7 +383,13 @@ class MultiThreadedDownloader:
         for result in results['availableDownloads']:
             self.jobqueue.put((result['url'], download_folder, output_folder))
 
-        self.logger.info("downloading files... please do not close the program")
+        # start the worker threads
+        for i in range(0, self.maxthreads):
+            thread = threading.Thread(target=lambda *dargs: self.download_files())
+            thread.start()
+            self.threads.append(thread)
+
+        self.logger.info("downloading files...")
 
         # for downloads that are still being prepared, wait for those
         preparingDownloadCount = len(results['preparingDownloads'])
@@ -375,17 +400,17 @@ class MultiThreadedDownloader:
 
             payload = {"label": label}
 
-            results = self.send_request(serviceUrl + "download-retrieve", payload, apiKey)
-            if results != False:
-                for result in results['available']:
-                    if result['downloadId'] in preparingDownloadIds:
-                        preparingDownloadIds.remove(result['downloadId'])
-                        self.jobqueue.put((result['url'], download_folder, output_folder))
-
-                for result in results['requested']:
-                    if result['downloadId'] in preparingDownloadIds:
-                        preparingDownloadIds.remove(result['downloadId'])
-                        self.jobqueue.put((result['url'], download_folder, output_folder))
+            # results = self.send_request(serviceUrl + "download-retrieve", payload, apiKey)
+            # if results != False:
+            #     for result in results['available']:
+            #         if result['downloadId'] in preparingDownloadIds:
+            #             preparingDownloadIds.remove(result['downloadId'])
+            #             self.jobqueue.put((result['url'], download_folder, output_folder, 0))
+            #
+            #     for result in results['requested']:
+            #         if result['downloadId'] in preparingDownloadIds:
+            #             preparingDownloadIds.remove(result['downloadId'])
+            #             self.jobqueue.put((result['url'], download_folder, output_folder, 0))
 
             # Didn't get all download URLs, retrieve again after 30 seconds
             while len(preparingDownloadIds) > 0:
@@ -401,6 +426,38 @@ class MultiThreadedDownloader:
 
         self.logger.info("got download urls for all downloads")
 
+        # queue None values to terminate workers after first attempt to download
+        for i in range(len(self.threads)):
+            self.jobqueue.put(None)
+
+        # wait for workers to complete first attempt
+        for thread in self.threads:
+            thread.join()
+        self.threads = []
+
+        # retries
+        for retry in range(1,self.retry_limit+1):
+            if not self.jobqueue.empty():
+                self.logger.warning(f"Retrying {self.jobqueue.qsize()} downloads (retry {retry}/{self.retry_limit})")
+                # start the worker threads
+                for i in range(0, self.maxthreads):
+                    thread = threading.Thread(target=lambda *dargs: self.download_files())
+                    thread.start()
+                    self.threads.append(thread)
+                for i in range(len(self.threads)):
+                    self.jobqueue.put(None)
+                for thread in self.threads:
+                    thread.join()
+                self.threads = []
+
+        if not self.jobqueue.empty():
+            self.logger.warning(f"Failed {self.jobqueue.qsize()} downloads (no retries left)")
+            while not self.jobqueue.empty():
+                (url, download_folder, output_folder) = self.jobqueue.get()
+                self.report_failure(url)
+
+        self.logger.info("Completed")
+
         # Logout
         endpoint = "logout"
         if self.send_request(serviceUrl + endpoint, None, apiKey) == None:
@@ -408,47 +465,41 @@ class MultiThreadedDownloader:
         else:
             self.logger.warning("logout Failed\n")
 
-        for i in range(self.maxthreads):
-            self.jobqueue.put(None) # this will cause the threads to terminate
-
-
-        for thread in self.threads:
-            thread.join()
-
-        self.logger.info("completed Downloads")
-
         executionTime = round((time.time() - startTime), 2)
-        self.logger.info(f'Total time: {executionTime} seconds')
 
-        self.logger.info(f"Summary: scanned files: {len(self.scanned_files)} download attempted: {len(self.expected_downloads)} downloads completed: {len(self.completed_downloads)} failed downloads: {len(self.failed_downloads)}")
+        self.logger.info(
+            f"Summary: \n\ttotal time: {executionTime} seconds\n\tscanned files: {len(self.scanned_files)} \n\tdownload attempted: {len(self.expected_downloads)} \n\tdownloads completed: {len(self.completed_downloads)} \n\tfailed downloads: {len(self.failed_downloads)}")
+
 
 def main():
     parser = argparse.ArgumentParser()
 
     parser.add_argument('-u', '--username', default=os.getenv("USGS_USERNAME"), help='Username')
     parser.add_argument('-t', '--token', default=os.getenv("USGS_TOKEN"), help='Access Token')
-    parser.add_argument('-f', '--filename', required=True, help='download entityId list or 3-column "catalogId,datasetId,entityId" CSV format')
+    parser.add_argument('-f', '--filename', required=True,
+                        help='download entityId list or 3-column "catalogId,datasetId,entityId" CSV format')
     parser.add_argument('-d', '--download-folder', default=None, help='download folder path')
     parser.add_argument('-n', '--no-download', action="store_true", help='Do not download any new files')
     parser.add_argument('-o', '--output-folder', default=".", help='output folder path')
     parser.add_argument('-s', '--file-suffixes', nargs="+", help='specify file suffix to download')
     parser.add_argument('-x', '--exclude-file-suffixes', nargs="+", help='specify file suffix to exclude')
     parser.add_argument('-c', '--file-cache-index', type=str,
-                        help='path to an key-value DBM index with filename->path cache lookup',default=None)
+                        help='path to an key-value DBM index with filename->path cache lookup', default=None)
     parser.add_argument('-l', '--limit', type=int, help='limit to this many items', default=None)
-    parser.add_argument('-e', '--download-summary-path', help='path to write a CSV with summary of expected downloads', default='')
+    parser.add_argument('-e', '--download-summary-path', help='path to write a CSV with summary of expected downloads',
+                        default='')
     parser.add_argument('-v', '--verbose', action="store_true", help='Enable verbose output')
 
     args = parser.parse_args()
 
-    logging.basicConfig(level=logging.DEBUG if args.verbose else logging.INFO)
+    logging.basicConfig(level=logging.DEBUG if args.verbose else logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     dl = MultiThreadedDownloader(args.file_cache_index)
     dl.fetch(username=args.username, token=args.token, scenefile=args.filename,
-             download_folder=os.path.abspath(args.download_folder)if args.download_folder else None,
+             download_folder=os.path.abspath(args.download_folder) if args.download_folder else None,
              output_folder=os.path.abspath(args.output_folder), limit=args.limit,
-             suffixes=args.file_suffixes, exclude_suffixes=args.exclude_file_suffixes, no_download=args.no_download, download_summary_path=args.download_summary_path)
+             suffixes=args.file_suffixes, exclude_suffixes=args.exclude_file_suffixes,
+             no_download=args.no_download, download_summary_path=args.download_summary_path)
+
 
 if __name__ == '__main__':
     main()
-
-
