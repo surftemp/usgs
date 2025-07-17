@@ -207,6 +207,12 @@ EE,  LANDSAT_OT_C2_L1, LC80920742019251LGN00
 ...
 ```
 
+You may want to pipe the results to a CSV file for later use with `usgs_download`
+
+```
+> usgs search-run my_search.json > scenes.csv
+```
+
 To see more detail on search results supply the `--full-details` flag.
 
 To print metadata for a scene use the `scene-metadata` command, passing the dataset and id:

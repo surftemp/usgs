@@ -322,6 +322,10 @@ class MultiThreadedDownloader:
             self.logger.error("failed to get download options, exiting")
             sys.exit(1)
 
+        if products is False:
+            self.logger.error("api failure, exiting")
+            sys.exit(1)
+
         if products is None:
             self.logger.error("no products returned, exiting")
             sys.exit(1)
