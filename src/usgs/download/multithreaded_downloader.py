@@ -408,18 +408,6 @@ class MultiThreadedDownloader:
 
             payload = {"label": label}
 
-            # results = self.send_request(serviceUrl + "download-retrieve", payload, apiKey)
-            # if results != False:
-            #     for result in results['available']:
-            #         if result['downloadId'] in preparingDownloadIds:
-            #             preparingDownloadIds.remove(result['downloadId'])
-            #             self.jobqueue.put((result['url'], download_folder, output_folder, 0))
-            #
-            #     for result in results['requested']:
-            #         if result['downloadId'] in preparingDownloadIds:
-            #             preparingDownloadIds.remove(result['downloadId'])
-            #             self.jobqueue.put((result['url'], download_folder, output_folder, 0))
-
             # Didn't get all download URLs, retrieve again after 30 seconds
             while len(preparingDownloadIds) > 0:
                 self.logger.info(
@@ -500,7 +488,21 @@ def main():
 
     args = parser.parse_args()
 
-    logging.basicConfig(level=logging.DEBUG if args.verbose else logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    logging.basicConfig(level=logging.DEBUG if args.verbose else logging.INFO,
+                        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
+    if args.file_suffixes:
+        xml_found = False
+        txt_found = False
+        for suffix in args.file_suffixes:
+            suffix = suffix.lower()
+            if suffix.endswith('xml'):
+                xml_found = True
+            if suffix.endswith('txt'):
+                txt_found = True
+        if not xml_found and not txt_found:
+            logging.warning("--file-suffixes was specified but did not include xml or txt, it is recommended to download at least one of these to help with decoding")
+
     dl = MultiThreadedDownloader(args.file_cache_index)
     dl.fetch(username=args.username, token=args.token, scenefile=args.filename,
              download_folder=os.path.abspath(args.download_folder) if args.download_folder else None,
