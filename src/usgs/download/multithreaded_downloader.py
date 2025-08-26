@@ -193,6 +193,10 @@ class MultiThreadedDownloader:
             for row in rdr:
                 lines.append(row)
 
+        if len(lines) == 0:
+            self.logger.warning(f"input CSV file is empty")
+            return
+
         # decode it
         entity_ids = []
         if len(lines[0]) == 1:
