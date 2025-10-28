@@ -28,6 +28,8 @@ import rioxarray
 
 from usgs.utils.file_utils import FileUtils
 
+EXCLUDE_PRODUCTS = ["L2SR"]
+
 
 def create_download_path(download_folder, filename):
     # for downloading to a separate cache folder, use year, month and day as subdirectories
@@ -229,6 +231,10 @@ class MultiThreadedDownloader:
 
         def require_file(display_id):
             filename = display_id
+            filename_comps = filename.split("_")
+            product = filename_comps[1]
+            if product in EXCLUDE_PRODUCTS:
+                return False
             if exclude_suffixes:
                 for ending in exclude_suffixes:
                     if filename.lower().endswith(ending.lower()):
