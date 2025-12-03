@@ -26,6 +26,8 @@ import os
 import queue
 import rioxarray
 
+from usgs import VERSION as USGS_VERSION
+
 from usgs.utils.file_utils import FileUtils
 
 EXCLUDE_PRODUCTS = ["L2SR"]
@@ -491,8 +493,18 @@ def main():
     parser.add_argument('-e', '--download-summary-path', help='path to write a CSV with summary of expected downloads',
                         default='')
     parser.add_argument('-v', '--verbose', action="store_true", help='Enable verbose output')
+    parser.add_argument(
+        "--check-version",
+        help="check that the version number of this tool matches the specified version string",
+        default=None
+    )
 
     args = parser.parse_args()
+
+    if args.check_version:
+        if USGS_VERSION != args.check_version:
+            print(f"--check-version failed:  installed version {USGS_VERSION} is not equal to the requested version {args.check_version}")
+            sys.exit(0)
 
     logging.basicConfig(level=logging.DEBUG if args.verbose else logging.INFO,
                         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')

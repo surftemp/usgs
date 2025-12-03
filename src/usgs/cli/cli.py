@@ -1,8 +1,11 @@
-import logging
+
+
 import logging
 import os
 import sys
 from argparse import ArgumentParser
+
+from usgs import VERSION as USGS_VERSION
 
 from usgs.api.catalogs import Catalogs
 from usgs.cli.util import parse_datetime, parse_latlong
@@ -16,7 +19,8 @@ def __main__(args=None):
     :param args: Defaults to sys.argv if not specified
     """
 
-    parser = ArgumentParser(description="Command line interface to api data")
+    parser = ArgumentParser(description="Command line interface to api data", usage='%(prog)s [options]')
+    parser.add_argument('-V', '--version', action='version', version="%(prog)s " + USGS_VERSION)
     parser.add_argument(
         "--username",
         help="api eros account username. overrides the USGS_USERNAME environment variable",
@@ -36,6 +40,12 @@ def __main__(args=None):
         "--debug",
         action='store_true',
         help="show debug messages"
+    )
+
+    parser.add_argument(
+        "--check-version",
+        help="check that the version number of this tool matches the specified version string",
+        default=None
     )
 
     # subparsers for each command
@@ -198,8 +208,6 @@ def __main__(args=None):
 
     parser_Search_Run.set_defaults(func=cli_commands.Run_Saved_Search)
 
-
-
     # SceneMetadata
     parser_SceneMetadata: ArgumentParser = command_subparsers.add_parser(
          "scene-metadata",
@@ -217,6 +225,14 @@ def __main__(args=None):
 
     # Parse and call func()
     args: dict = vars(parser.parse_args(args=args))
+
+    # check the version
+    check_version = args.get("check_version")
+
+    if check_version:
+        if USGS_VERSION != check_version:
+            print(f"--check-version failed:  installed version {USGS_VERSION} is not equal to the requested version {check_version}")
+            sys.exit(0)
 
     # logging
     if args.get("debug"):
