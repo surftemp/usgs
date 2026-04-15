@@ -1,5 +1,5 @@
 # Based on:
-import csv
+
 # ========================================================================================================================
 #  USGS/EROS Inventory Service Example
 #  Description: Download Landsat Collection 2 files
@@ -14,7 +14,7 @@ import csv
 
 import json
 import logging
-
+import csv
 import requests
 import sys
 import time
@@ -25,6 +25,7 @@ import datetime
 import os
 import queue
 import rioxarray
+import math
 
 from usgs import VERSION as USGS_VERSION
 
@@ -49,7 +50,7 @@ def create_download_path(download_folder, filename):
 
 class MultiThreadedDownloader:
 
-    def __init__(self, file_cache_index_path=None, maxthreads=5, retry_limit=3):
+    def __init__(self, file_cache_index_path=None, maxthreads=5, retry_limit=3, batch_size=5):
         self.maxthreads = maxthreads  # Threads count for downloads
         self.jobqueue = queue.Queue()
         self.threads = []
@@ -64,6 +65,7 @@ class MultiThreadedDownloader:
         self.lock = threading.Lock()
 
         self.queue_loading = True
+        self.batch_size = batch_size
 
     def report_failure(self, filename):
         self.lock.acquire()
@@ -202,7 +204,7 @@ class MultiThreadedDownloader:
             return
 
         # decode it
-        entity_ids = []
+        all_entity_ids = []
         if len(lines[0]) == 1:
             # expected format is:
             #
@@ -212,7 +214,7 @@ class MultiThreadedDownloader:
             # .....
             dataset_name = lines[0][0].strip()
             for line in lines[1:]:
-                entity_ids.append(line[0].strip())
+                all_entity_ids.append(line[0].strip())
         elif len(lines[0]) == 3:
             # format is
             #
@@ -221,7 +223,7 @@ class MultiThreadedDownloader:
             # ...
             dataset_name = lines[0][1].strip()
             for line in lines:
-                entity_ids.append(line[2].strip())
+                all_entity_ids.append(line[2].strip())
         else:
             raise ValueError("input file format not recognized")
 
@@ -306,9 +308,8 @@ class MultiThreadedDownloader:
             self.expected_downloads.add(filename)
             return download_path  # this file needs to be downloaded
 
-        label = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-
-        startTime = time.time()
+        if limit is not None:
+            all_entity_ids = all_entity_ids[:limit]
 
         serviceUrl = "https://m2m.cr.usgs.gov/api/api/json/stable/"
 
@@ -320,147 +321,165 @@ class MultiThreadedDownloader:
             self.logger.error("login failed, exiting")
             sys.exit(1)
 
-        if limit is not None:
-            entity_ids = entity_ids[:limit]
+        pending_entity_ids = all_entity_ids[:]
 
-        payload = {
-            "entityIds": entity_ids,
-            "datasetName": dataset_name
-        }
+        startTime = time.time()
 
-        self.logger.info(f"getting product download options for {len(entity_ids)} entities")
-        products = self.send_request(serviceUrl + "download-options", payload, apiKey)
-        if apiKey == False:
-            self.logger.error("failed to get download options, exiting")
-            sys.exit(1)
+        batch_count = math.ceil(len(pending_entity_ids)/self.batch_size)
+        batch_number = 0
 
-        if products is False:
-            self.logger.error("api failure, exiting")
-            sys.exit(1)
-
-        if products is None:
-            self.logger.error("no products returned, exiting")
-            sys.exit(1)
-
-        self.logger.info(f"got {len(products)} products for download")
-
-        # Select products
-        downloads = []
         expected_outputs = []
 
-        # Select band files
+        while len(pending_entity_ids):
 
-        for product in products:
-            product_entity_id = product["entityId"]
-            if product["secondaryDownloads"] is not None and len(product["secondaryDownloads"]) > 0:
-                for secondaryDownload in product["secondaryDownloads"]:
-                    if secondaryDownload["bulkAvailable"]:
-                        display_id = secondaryDownload["displayId"]
-                        if not require_file(display_id):
-                            continue
-                        if display_id in self.scanned_files:
-                            continue
-                        expected_outputs.append([product_entity_id, display_id])
-                        self.scanned_files.add(display_id)
+            batch_number += 1
+            self.logger.info(f"Processing batch: {batch_number}/{batch_count}")
 
-                        if include_file_for_download(display_id):
-                            downloads.append(
-                                {"entityId": secondaryDownload["entityId"], "productId": secondaryDownload["id"]})
+            # get the next batch of entity ids
+            entity_ids = pending_entity_ids[:self.batch_size]
+            pending_entity_ids = pending_entity_ids[self.batch_size:]
+
+            # process this batch
+            label = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+
+            payload = {
+                "entityIds": entity_ids,
+                "datasetName": dataset_name
+            }
+
+            self.logger.info(f"getting product download options for {len(entity_ids)} entities")
+            products = self.send_request(serviceUrl + "download-options", payload, apiKey)
+            if apiKey == False:
+                self.logger.error("failed to get download options, exiting")
+                sys.exit(1)
+
+            if products is False:
+                self.logger.error("api failure, exiting")
+                sys.exit(1)
+
+            if products is None:
+                self.logger.error("no products returned, exiting")
+                sys.exit(1)
+
+            self.logger.info(f"got {len(products)} products for download")
+
+            # Select products
+            downloads = []
+
+            # Select band files
+
+            for product in products:
+                product_entity_id = product["entityId"]
+                if product["secondaryDownloads"] is not None and len(product["secondaryDownloads"]) > 0:
+                    for secondaryDownload in product["secondaryDownloads"]:
+                        if secondaryDownload["bulkAvailable"]:
+                            display_id = secondaryDownload["displayId"]
+                            if not require_file(display_id):
+                                continue
+                            if display_id in self.scanned_files:
+                                continue
+                            expected_outputs.append([product_entity_id, display_id])
+                            self.scanned_files.add(display_id)
+
+                            if include_file_for_download(display_id):
+                                downloads.append(
+                                    {"entityId": secondaryDownload["entityId"], "productId": secondaryDownload["id"]})
+
+            nr_downloads = len(downloads)
+            if nr_downloads == 0:
+                self.logger.warning("no downloads required, exiting")
+                continue
+            else:
+                self.logger.info(f"{nr_downloads} downloads required")
+
+            payload = {
+                "downloads": downloads,
+                "label": label
+            }
+
+            self.logger.info("sending download request...")
+            results = self.send_request(serviceUrl + "download-request", payload, apiKey)
+            if results == False:
+                self.logger.error("download request failed, exiting")
+                sys.exit(1)
+
+            self.logger.info("sent download request...")
+
+            # Attempt the download URLs, add them to the job queue
+            for result in results['availableDownloads']:
+                self.jobqueue.put((result['url'], download_folder, output_folder))
+
+            # start the worker threads
+            for i in range(0, self.maxthreads):
+                thread = threading.Thread(target=lambda *dargs: self.download_files())
+                thread.start()
+                self.threads.append(thread)
+
+            self.logger.info("downloading files...")
+
+            # for downloads that are still being prepared, wait for those
+            preparingDownloadCount = len(results['preparingDownloads'])
+            preparingDownloadIds = []
+            if preparingDownloadCount > 0:
+                for result in results['preparingDownloads']:
+                    preparingDownloadIds.append(result['downloadId'])
+
+                payload = {"label": label}
+
+                # Didn't get all download URLs, retrieve again after 30 seconds
+                while len(preparingDownloadIds) > 0:
+                    self.logger.info(
+                        f"{len(preparingDownloadIds)} downloads are not available yet. Waiting for 30s to retrieve again")
+                    time.sleep(30)
+                    results = self.send_request(serviceUrl + "download-retrieve", payload, apiKey)
+                    if results != False:
+                        for result in results['available']:
+                            if result['downloadId'] in preparingDownloadIds:
+                                preparingDownloadIds.remove(result['downloadId'])
+                                self.jobqueue.put((result['url'], download_folder, output_folder))
+
+            self.logger.info("got download urls for all downloads")
+
+            # queue None values to terminate workers after first attempt to download
+            for i in range(len(self.threads)):
+                self.jobqueue.put(None)
+
+            # wait for workers to complete first attempt
+            for thread in self.threads:
+                thread.join()
+            self.threads = []
+
+            # retries
+            for retry in range(1,self.retry_limit+1):
+                if not self.jobqueue.empty():
+                    self.logger.warning(f"Retrying {self.jobqueue.qsize()} downloads (retry {retry}/{self.retry_limit})")
+                    # start the worker threads
+                    for i in range(0, self.maxthreads):
+                        thread = threading.Thread(target=lambda *dargs: self.download_files())
+                        thread.start()
+                        self.threads.append(thread)
+                    for i in range(len(self.threads)):
+                        self.jobqueue.put(None)
+                    for thread in self.threads:
+                        thread.join()
+                    self.threads = []
+
+            if not self.jobqueue.empty():
+                self.logger.warning(f"Failed {self.jobqueue.qsize()} downloads (no retries left)")
+                while not self.jobqueue.empty():
+                    (url, download_folder, output_folder) = self.jobqueue.get()
+                    self.report_failure(url)
+
+        self.logger.info("Completed")
 
         if download_summary_path:
+            # write out a list of all the files that should have been downloaded
             download_summary_folder = os.path.split(download_summary_path)[0]
             os.makedirs(download_summary_folder, exist_ok=True)
             with open(download_summary_path, "w") as f:
                 writer = csv.writer(f)
                 for expected_output in expected_outputs:
                     writer.writerow(expected_output)
-
-        nr_downloads = len(downloads)
-        if nr_downloads == 0:
-            self.logger.warning("no downloads required, exiting")
-            sys.exit(0)
-        else:
-            self.logger.info(f"{nr_downloads} downloads required")
-
-        payload = {
-            "downloads": downloads,
-            "label": label
-        }
-
-        self.logger.info("sending download request...")
-        results = self.send_request(serviceUrl + "download-request", payload, apiKey)
-        if results == False:
-            self.logger.error("download request failed, exiting")
-            sys.exit(1)
-
-        self.logger.info("sent download request...")
-
-        # Attempt the download URLs, add them to the job queue
-        for result in results['availableDownloads']:
-            self.jobqueue.put((result['url'], download_folder, output_folder))
-
-        # start the worker threads
-        for i in range(0, self.maxthreads):
-            thread = threading.Thread(target=lambda *dargs: self.download_files())
-            thread.start()
-            self.threads.append(thread)
-
-        self.logger.info("downloading files...")
-
-        # for downloads that are still being prepared, wait for those
-        preparingDownloadCount = len(results['preparingDownloads'])
-        preparingDownloadIds = []
-        if preparingDownloadCount > 0:
-            for result in results['preparingDownloads']:
-                preparingDownloadIds.append(result['downloadId'])
-
-            payload = {"label": label}
-
-            # Didn't get all download URLs, retrieve again after 30 seconds
-            while len(preparingDownloadIds) > 0:
-                self.logger.info(
-                    f"{len(preparingDownloadIds)} downloads are not available yet. Waiting for 30s to retrieve again")
-                time.sleep(30)
-                results = self.send_request(serviceUrl + "download-retrieve", payload, apiKey)
-                if results != False:
-                    for result in results['available']:
-                        if result['downloadId'] in preparingDownloadIds:
-                            preparingDownloadIds.remove(result['downloadId'])
-                            self.jobqueue.put((result['url'], download_folder, output_folder))
-
-        self.logger.info("got download urls for all downloads")
-
-        # queue None values to terminate workers after first attempt to download
-        for i in range(len(self.threads)):
-            self.jobqueue.put(None)
-
-        # wait for workers to complete first attempt
-        for thread in self.threads:
-            thread.join()
-        self.threads = []
-
-        # retries
-        for retry in range(1,self.retry_limit+1):
-            if not self.jobqueue.empty():
-                self.logger.warning(f"Retrying {self.jobqueue.qsize()} downloads (retry {retry}/{self.retry_limit})")
-                # start the worker threads
-                for i in range(0, self.maxthreads):
-                    thread = threading.Thread(target=lambda *dargs: self.download_files())
-                    thread.start()
-                    self.threads.append(thread)
-                for i in range(len(self.threads)):
-                    self.jobqueue.put(None)
-                for thread in self.threads:
-                    thread.join()
-                self.threads = []
-
-        if not self.jobqueue.empty():
-            self.logger.warning(f"Failed {self.jobqueue.qsize()} downloads (no retries left)")
-            while not self.jobqueue.empty():
-                (url, download_folder, output_folder) = self.jobqueue.get()
-                self.report_failure(url)
-
-        self.logger.info("Completed")
 
         # Logout
         endpoint = "logout"
@@ -492,6 +511,7 @@ def main():
     parser.add_argument('-l', '--limit', type=int, help='limit to this many items', default=None)
     parser.add_argument('-e', '--download-summary-path', help='path to write a CSV with summary of expected downloads',
                         default='')
+    parser.add_argument('-b', '--batch-size', type=int, help='divide into batches with this many scenes', default=5)
     parser.add_argument('-v', '--verbose', action="store_true", help='Enable verbose output')
     parser.add_argument(
         "--check-version",
@@ -521,7 +541,7 @@ def main():
         if not xml_found and not txt_found:
             logging.warning("--file-suffixes was specified but did not include xml or txt, it is recommended to download at least one of these to help with decoding")
 
-    dl = MultiThreadedDownloader(args.file_cache_index)
+    dl = MultiThreadedDownloader(file_cache_index_path=args.file_cache_index, batch_size=args.batch_size)
     dl.fetch(username=args.username, token=args.token, scenefile=args.filename,
              download_folder=os.path.abspath(args.download_folder) if args.download_folder else None,
              output_folder=os.path.abspath(args.output_folder), limit=args.limit,

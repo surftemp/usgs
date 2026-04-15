@@ -324,12 +324,13 @@ Once the index is built, its path can be supplied to the `usgs_download` tool us
 
 ##### Other options
 
-| option                    | description                                                                                                      |
-|---------------------------|------------------------------------------------------------------------------------------------------------------|
-| `--limit`                 | if specified, limit the number of scenes to be downloaded                                                        |
-| `--no-download`           | if specified, do not download any files from USGS (the tool will still link already downloaded or indexed files) |
-| `--exclude-file-suffixes` | if specified, ignore files with these suffixes |
- | `--verbose`               | log verbose output during downloading |
+| option                    | description                                                                                                            |
+|---------------------------|------------------------------------------------------------------------------------------------------------------------|
+| `--limit`                 | if specified, limit the number of scenes to be downloaded                                                              |
+| `--no-download`           | if specified, do not download any files from USGS (the tool will still link already downloaded or indexed files)       |
+| `--exclude-file-suffixes` | if specified, ignore files with these suffixes                                                                         |
+| `--verbose`               | log verbose output during downloading                                                                                  |
+| `--batch-size`            | batch requests to USGS by this many scenes (defaults to 5 if not specified)                                            |
 
 Note: the --exclude-file-suffixes option is useful to avoid downloading spurious landsat7 "gap mask" files 
 
