@@ -33,6 +33,8 @@ from usgs.utils.file_utils import FileUtils
 
 EXCLUDE_PRODUCTS = ["L2SR"]
 
+EXTRA_DOWNLOAD_FOLDERS = json.loads(os.getenv("EXTRA_DOWNLOAD_FOLDERS") or '[]')
+
 
 def create_download_path(download_folder, filename):
     # for downloading to a separate cache folder, use year, month and day as subdirectories
@@ -162,15 +164,20 @@ class MultiThreadedDownloader:
                         download_path = os.path.join(download_folder, filename)
                     output_path = os.path.join(output_folder, filename)
                     content = response.content  # this should read the data from the connection
-                    with open(download_path, 'wb') as f:
-                        try:
-                            f.write(content)
-                        except:
-                            # write failed
-                            # do not leave a broken file behind
-                            self.remove_path(download_path)
-                            raise
-
+                    try:
+                        with open(download_path, 'wb') as f:
+                            try:
+                                f.write(content)
+                            except:
+                                # write failed
+                                # do not leave a broken file behind
+                                self.remove_path(download_path)
+                                raise
+                    except:
+                        # if there is a problem writing the content to disk, abort
+                        # it may be that disk space or disk quota is exhausted
+                        self.logger.exception("Error during write to disk")
+                        sys.exit(1)
                     # check that the downloaded file is not empty or corrupt before marking as complete
                     if self.check_download(download_path):
                         self.logger.info(f"Downloaded {filename}")
@@ -293,6 +300,14 @@ class MultiThreadedDownloader:
                 else:
                     self.logger.warning(f"removing empty copies of {filename}")
                     self.remove_path(download_path)
+
+            for extra_download_folder in EXTRA_DOWNLOAD_FOLDERS:
+                extra_download_path = os.path.join(extra_download_folder, filename)
+                if os.lstat(extra_download_path).st_size > 0:
+                    self.logger.debug(f"{filename} already downloaded")
+                    self.logger.debug(f"creating symlink from already downloaded {extra_download_path} to {output_path}")
+                    os.symlink(extra_download_path, output_path)
+                    return None
 
             if self.file_cache is not None:
                 cached_path = self.file_cache.get_path(filename)

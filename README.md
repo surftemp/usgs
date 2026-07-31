@@ -338,4 +338,7 @@ Note: the --exclude-file-suffixes option is useful to avoid downloading spurious
 usgs_download --file-suffixes B4.TIF B5.TIF --exclude-file-suffixes _GM_B4.TIF _GM_B5.TIF ...
 ```
 
+##### EXTRA_DOWNLOAD_FOLDERS
 
+The environment variable `EXTRA_DOWNLOAD_FOLDERS` can be used to provide a list of extra folders under which files may already be downloaded.  If a file is found
+under one of these extra folders, it will be symlinked to the appropriate place in the output folder.  No new files will be downloaded to these extra download folders.
